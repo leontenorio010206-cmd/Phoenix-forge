@@ -1,3 +1,10 @@
+## 1.5.0 — Puente asistido para Digital
+- Botón Preparar y abrir Digital: exporta HDL descomprimido, conserva Icarus íntegro en el perfil de usuario y abre Digital.jar.
+- Copia en un clic la etiqueta, entradas, salidas y carpeta IVerilog, calculadas de los puertos Verilog.
+- No modifica ajustes de Digital ni PATH global, no borra archivos ajenos y exige permiso antes de abrir el simulador.
+- Pruebas de integridad SHA256, rutas, persistencia, ejecución de Digital y GUI.
+- Un archivo .dig completamente automático sigue pendiente de validación con el simulador real.
+
 ## 1.4.0 — Exportador visual para Digital
 - Pantalla integrada Qt para visualizar el bloque Verilog, pines HDL y diagramas de conexiones.
 - Símbolo SVG y esquema SVG generados automáticamente desde el módulo real del proyecto.
