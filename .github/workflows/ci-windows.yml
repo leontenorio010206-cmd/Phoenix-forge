@@ -1,27 +1,36 @@
-name: PhoenixForge | Windows 10 x64 v1.6.2
-
+name: PhoenixForge | Windows 10 x64 v1.7 (acceptance required)
 on:
-  workflow_dispatch:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: phoenixforge-windows-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   windows:
-    name: Compilacion Windows 10 x64
+    name: Windows native x64 / release gate
     runs-on: windows-2022
     timeout-minutes: 90
     steps:
       - name: Obtener repositorio
         uses: actions/checkout@v4
         with:
-          persist-credentials: true
-      - name: Instalar Python 3.11 x64
+          persist-credentials: false
+      - name: Preparar Python 3.11.9 x64
         uses: actions/setup-python@v5
         with:
           python-version: '3.11.9'
           architecture: x64
-      - name: Dependencias Python
+          cache: pip
+          cache-dependency-path: |
+            requirements/build-modern.txt
+            requirements/modern.txt
+            requirements/test-modern.txt
+      - name: Dependencias verificadas de Python
         shell: pwsh
         run: |
           python -m pip install pip==24.0
@@ -41,7 +50,7 @@ jobs:
       - name: Compilar Icarus Verilog 12.0
         shell: msys2 {0}
         run: bash tools/build_icarus_msys2.sh
-      - name: Empaquetar runtime Icarus
+      - name: Empaquetar runtime y dependencias Icarus
         shell: pwsh
         run: |
           $prefix = (Get-Content build/icarus-prefix.txt -Raw).Trim()
@@ -49,66 +58,75 @@ jobs:
           $licenses = (Get-Content build/mingw-licenses.txt -Raw).Trim()
           python tools/stage_icarus.py --prefix $prefix --dependency-bin $bin --license-dir $licenses
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Licencias y fuentes Qt
+      - name: Preservar fuentes y licencias Qt
         shell: pwsh
         run: |
           python tools/prepare_qt_sources.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Compilacion y pruebas estrictas
+      - name: Pruebas Windows y aceptación estricta del EXE
         id: strict
-        continue-on-error: true
         shell: pwsh
         run: |
           python tools/build_windows.py --portable-only
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Intento alternativo marcado EXPERIMENTAL
-        if: steps.strict.outcome == 'failure'
+      - name: Validar reporte de liberación
         shell: pwsh
         run: |
-          python tools/build_windows.py --experimental-preview --portable-only
+          python tools/release_gate.py --report build/windows-build-report.json --directory dist
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Exportar fuentes actualizadas
+      - name: Informe de tamaños y dependencias
+        shell: pwsh
+        run: |
+          python tools/size_report.py --output build/size-report.json --dist dist --root .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Empaquetar fuentes actualizadas
         if: always()
         shell: pwsh
         run: |
-          python tools/package_release.py --output dist/PhoenixForge_v1.6.2_Source.zip
-      - name: Comprobar que existe el ejecutable
-        shell: pwsh
-        run: |
-          $exe = @(Get-ChildItem -Path dist -Filter '*.exe' -ErrorAction SilentlyContinue)
-          if ($exe.Count -lt 1) { throw 'No se genero ningun EXE' }
-          foreach ($f in $exe) { Write-Host "$($f.Name): $($f.Length) bytes" }
-      - name: Estado claro de la validacion
-        if: always()
-        shell: pwsh
-        run: |
-          if ('${{ steps.strict.outcome }}' -eq 'success') {
-            Add-Content $env:GITHUB_STEP_SUMMARY 'Compilacion y validacion automatica en Windows Server 2022: APROBADA. Falta verificar en Windows 10 limpio.'
-          } else {
-            Add-Content $env:GITHUB_STEP_SUMMARY 'No hay certificacion de estabilidad: la compilacion estricta fallo o no se ejecuto. Cualquier EXE alternativo es EXPERIMENTAL.'
-          }
-      - name: Publicar artefactos de Windows (privados)
-        if: always()
+          python tools/package_release.py --output dist/PhoenixForge_v1.7.0_Source.zip
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Publicar ÚNICAMENTE EXE aceptado
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: PhoenixForge-Windows-v1.6.2
+          name: PhoenixForge-Windows-v1.7-VALIDADO-CI
           path: |
-            dist/*.exe
-            dist/*.zip
-            dist/*.json
+            dist/PhoenixForge_v1.7.0_Portable.exe
+            dist/SHA256SUMS.txt
             build/windows-build-report.json
-            build/windows-*-tests.xml
-          if-no-files-found: warn
-          retention-days: 14
-      - name: Guardar diagnosticos
+            build/size-report.json
+            build/packaged-acceptance/packaged-acceptance.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Fuentes, disponibles separadamente
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: PhoenixForge-v1.6.2-Diagnosticos
+          name: PhoenixForge-v1.7-Fuentes-y-licencias
+          path: |
+            dist/PhoenixForge_v1.7.0_Source.zip
+            dist/PhoenixForge_v1.7.0_Source.zip.sha256
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Diagnósticos incluso si falla la aceptación
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhoenixForge-v1.7-Diagnosticos
           path: |
             build/*.json
             build/*.txt
             build/*.xml
+            build/packaged-acceptance/**/*
             build/work-modern/PhoenixForge/warn-*.txt
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 30
+      - name: Resumen veraz de estado
+        if: always()
+        shell: pwsh
+        run: |
+          if ('${{ steps.strict.outcome }}' -eq 'success') {
+            Add-Content $env:GITHUB_STEP_SUMMARY 'Ejecutable aprobado por suite de código y aceptación empaquetada nativa en Windows Server 2022. AÚN NO probado en laptops limpias ni firmado.'
+          } else {
+            Add-Content $env:GITHUB_STEP_SUMMARY 'FALLÓ aceptación estricta. NO se publica un EXE validado. Consulte diagnósticos.'
+          }
