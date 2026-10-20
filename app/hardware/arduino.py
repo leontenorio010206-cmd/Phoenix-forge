@@ -91,6 +91,7 @@ def board_list(cli=None, runner=subprocess.run):
 def core_install(core, cli=None, runner=subprocess.run):
     if not CORE_RE.fullmatch(core):
         raise ValueError("Solo se instalan plataformas oficiales arduino:* en v1.6")
+    call_cli(["core", "update-index"], cli=cli, timeout=300, runner=runner)
     return call_cli(["core", "install", core], cli=cli, timeout=900, runner=runner)
 
 
