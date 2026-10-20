@@ -90,7 +90,7 @@ def test_version_100_project_preserves_data(tmp_path):
     again = loaded.save(tmp_path / 'updated.pforge')
     assert Project.open(again) == p
     assert loaded.manifest()['schema_version'] == 1
-    assert loaded.manifest()['app_version'] == '1.6.1'
+    assert loaded.manifest()['app_version'] == '1.6.2'
 
 
 @pytest.mark.parametrize('payload', [b'', b'#!/bin/sh\necho not-windows\n', b'MZ'+b'\0'*126])
