@@ -74,6 +74,28 @@ jobs:
         run: |
           python tools/release_gate.py --report build/windows-build-report.json --directory dist
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Preparar compilador NSIS y validar PowerShell del Setup
+        shell: pwsh
+        run: |
+          $errors = $null
+          $tokens = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path installer/install_optional.ps1).Path,
+            [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw ('PowerShell inválido: ' + ($errors | Out-String)) }
+          $nsis = Get-Command makensis.exe -ErrorAction SilentlyContinue
+          if (-not $nsis) {
+            $guess = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
+            if (-not (Test-Path -LiteralPath $guess)) {
+              choco install nsis -y --no-progress
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+          }
+      - name: Generar Setup Windows con Java y Digital opcionales
+        shell: pwsh
+        run: |
+          python tools/build_setup_windows.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Informe de tamaños y dependencias
         shell: pwsh
         run: |
@@ -92,8 +114,10 @@ jobs:
           name: PhoenixForge-Windows-v1.7-VALIDADO-CI
           path: |
             dist/PhoenixForge_v1.7.0_Portable.exe
+            dist/PhoenixForge_v1.7.0_Setup.exe
             dist/SHA256SUMS.txt
             build/windows-build-report.json
+            build/setup-report.json
             build/size-report.json
             build/packaged-acceptance/packaged-acceptance.json
           if-no-files-found: error
