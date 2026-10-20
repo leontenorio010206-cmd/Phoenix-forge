@@ -1,3 +1,11 @@
+## 1.6.0 — Hardware Studio (primera integración)
+- Detección automática USB/COM Windows y dispositivos Pico BOOTSEL; sin instalación silenciosa de controladores.
+- Arduino CLI oficial v1.5.1 con verificación SHA-256, instalación opt-in de plataformas y bibliotecas.
+- Editor de sketches Arduino, compilación y carga con selección manual de FQBN y puerto y confirmación.
+- Copia manual confirmada de firmware .uf2 a Raspberry Pi Pico y validación de formato.
+- Enlaces FPGA para síntesis/programación; la carga JTAG sigue pendiente por placa específica.
+- Pruebas automatizadas con hardware simulado; no certifica placas físicas ni Windows 7.
+
 ## 1.5.0 — Puente asistido para Digital
 - Botón Preparar y abrir Digital: exporta HDL descomprimido, conserva Icarus íntegro en el perfil de usuario y abre Digital.jar.
 - Copia en un clic la etiqueta, entradas, salidas y carpeta IVerilog, calculadas de los puertos Verilog.
