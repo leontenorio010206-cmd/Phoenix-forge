@@ -30,6 +30,7 @@ class HardwareDevice:
     status: str = ""
     confidence: str = "ambigua"
     note: str = ""
+    origin: str = "No verificable"
 
     def to_dict(self):
         return asdict(self)
@@ -42,7 +43,9 @@ def classify_usb(name, instance, status=""):
     port = SERIAL.search(name or "")
     com = port.group(1).upper() if port else ""
     kind, confidence, note = "USB / serie", "ambigua", "No se puede deducir la placa física solo por su adaptador USB."
+    origin = "No verificable"
     if vid in {"2341", "2A03"}:
+        origin = "Identificadores USB Arduino (autenticidad no verificable)"
         kind, confidence, note = "Arduino", "fabricante USB", "Verifica modelo, puerto y FQBN con Arduino CLI."
     elif vid == "2E8A":
         kind, confidence, note = "Raspberry Pi Pico / RP2040", "fabricante USB", "Confirma la revisión concreta de la placa."
@@ -50,8 +53,13 @@ def classify_usb(name, instance, status=""):
         kind, confidence, note = "Programador FPGA Altera/Intel", "adaptador USB", "El adaptador JTAG no identifica el chip FPGA."
     elif vid in {"0403", "1A86", "10C4"}:
         note = "Adaptador USB-serie: compatible con múltiples Arduino, FPGA y otros dispositivos."
+        if vid == "1A86" and "arduino" in (name or "").lower():
+            origin = "Compatible/clon posible (CH340; no certificado)"
+            note += " No es prueba de falsificación; identifica solo el puente serie."
+        elif vid in {"0403", "10C4"}:
+            origin = "Origen no verificable (puente FTDI/CP210x)"
     return HardwareDevice((name or "Dispositivo USB")[:180], kind, (instance or "")[:240],
-                          com, status or "", confidence, note)
+                          com, status or "", confidence, note, origin)
 
 
 def _parse_json(stream):
