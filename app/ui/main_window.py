@@ -12,6 +12,7 @@ from app.ui.theme import STYLE
 from app.ui.studio import Studio
 from app.ui.examples_panel import ExamplesPanel
 from app.ui.digital_export_panel import DigitalExportPanel
+from app.ui.hardware_studio import HardwareStudio
 from app.devices.simulation import device_demo_project, rtl_readiness
 from app.ui.management import DevicePanel, PluginPanel, SettingsPanel
 from app.ui.project_actions import ProjectActions, guarded
@@ -70,7 +71,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         side.addWidget(version)
         self.navigation = W.QListWidget()
         self.navigation.setObjectName("Navigation")
-        self.navigation.addItems(["Inicio", "Estudio HDL", "Dispositivos FPGA", "Proyectos de muestra", "Exportar a Digital", "Plugins", "Configuración"])
+        self.navigation.addItems(["Inicio", "Estudio HDL", "Dispositivos FPGA", "Proyectos de muestra", "Exportar a Digital", "Hardware Studio", "Plugins", "Configuración"])
         side.addWidget(self.navigation, 1)
         build = label("   v%s  /  %s\n   RTL · Sin programación física" % (__version__, BINDING), "Muted")
         build.setStyleSheet("font-size: 10px; color: #7f94ad;")
@@ -83,9 +84,10 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.clock = self.examples.clock  # Interactive sample, no longer a top-level page.
         self.devices = DevicePanel(lambda: self.project, lambda: self.settings.values)
         self.digital_export = DigitalExportPanel()
+        self.hardware = HardwareStudio()
         self.plugins = PluginPanel(lambda: copy.deepcopy(self.project))
         self.settings = SettingsPanel()
-        for widget in (self.home, self.studio, self.devices, self.examples, self.digital_export, self.plugins, self.settings):
+        for widget in (self.home, self.studio, self.devices, self.examples, self.digital_export, self.hardware, self.plugins, self.settings):
             self.stack.addWidget(widget)
         self.navigation.currentRowChanged.connect(self.stack.setCurrentIndex)
         shell.addWidget(self.stack, 1)
@@ -113,7 +115,8 @@ class MainWindow(W.QMainWindow, ProjectActions):
         cards = W.QHBoxLayout()
         for number, title, text, action in (
                 ("01 / DISPOSITIVOS", "Elige tu FPGA", "Diez perfiles documentados.\nSelecciona tu dispositivo y organiza las asignaciones de pines.", lambda: self.navigate(2)),
-                ("02 / EJEMPLOS", "Aprende con proyectos", "Semáforo y divisores, sumador, y contador RTL.\nAbre, modifica y simula sin perder los ejemplos.", lambda: self.navigate(3))):
+                ("02 / EJEMPLOS", "Aprende con proyectos", "Semáforo y divisores, sumador, y contador RTL.\nAbre, modifica y simula sin perder los ejemplos.", lambda: self.navigate(3)),
+                ("03 / HARDWARE", "Conecta y programa", "Arduino, Raspberry Pi Pico y detección USB/JTAG.\nLas cargas físicas siempre requieren confirmación.", lambda: self.navigate(5))):
             frame, inner = card()
             inner.addWidget(label(number, "Eyebrow"))
             inner.addWidget(label(title, "Heading"))
@@ -174,6 +177,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         action(simulation, "Ejemplo: sumador de 1 bit", self.new_adder)
         action(simulation, "Compilar y simular", self.run_simulation, "F5")
         action(simulation, "Detener", self.cancel_simulation, "Shift+F5")
+        action(simulation, "Abrir Hardware Studio", lambda: self.navigate(5))
         action(simulation, "Abrir VCD…", self.open_vcd)
         action(simulation, "Abrir último VCD en GTKWave", self.external_wave)
         help_menu = self.menuBar().addMenu("Ayuda")
@@ -383,6 +387,10 @@ class MainWindow(W.QMainWindow, ProjectActions):
             W.QMessageBox.information(self, "Componentes", "Fuentes y avisos disponibles copiados a:\n" + str(target))
 
     def closeEvent(self, event):
+        if self.hardware.worker is not None:
+            W.QMessageBox.information(self, "Hardware Studio", "Espere a que termine la operación de hardware antes de cerrar.")
+            event.ignore()
+            return
         if self.devices.bench.worker is not None:
             W.QMessageBox.information(self, "FPGA virtual", "Espere a que termine el banco de pruebas virtual antes de cerrar.")
             event.ignore()
