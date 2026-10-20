@@ -241,6 +241,7 @@ class HardwareStudio(W.QWidget):
         self.catalog_search.returnPressed.connect(self.search_library)
         libtools.addWidget(self.catalog_search, 1)
         libtools.addWidget(button("Buscar en línea", self.search_library))
+        libtools.addWidget(button("Instalar nombre exacto", self.install_catalog_library))
         layout.addLayout(libtools)
         self.library_results = W.QPlainTextEdit()
         self.library_results.setReadOnly(True)
@@ -347,6 +348,16 @@ class HardwareStudio(W.QWidget):
         name = self.catalog_search.text().strip()
         if name:
             self._run("Buscando bibliotecas", lambda: arduino.library_search(name),
+                      lambda response: self.library_results.setPlainText(str(response)[-9000:]))
+
+    def install_catalog_library(self):
+        name = self.catalog_search.text().strip()
+        if not name:
+            return
+        if self._confirm("Instalar biblioteca Arduino",
+            "Descargar e instalar desde Arduino Library Manager la biblioteca «" + name +
+            "» y sus dependencias. Confirma el nombre exacto antes de instalar. ¿Continuar?"):
+            self._run("Instalando biblioteca", lambda: arduino.library_install(name),
                       lambda response: self.library_results.setPlainText(str(response)[-9000:]))
 
     def apply_example(self):
