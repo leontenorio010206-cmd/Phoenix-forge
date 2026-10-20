@@ -1,6 +1,7 @@
 import argparse
 import json
 import logging
+import faulthandler
 import platform
 import sys
 from logging.handlers import RotatingFileHandler
@@ -35,6 +36,11 @@ def main(argv=None):
                           "windows_compatibility": "Not verified by this command"}, indent=2))
         return 0
     configure_logging()
+    try:
+        crash_stream = open(data_dir() / 'PhoenixForge-crash.log', 'a', encoding='utf-8')
+        faulthandler.enable(file=crash_stream, all_threads=True)
+    except (OSError, RuntimeError):
+        logging.exception('No se pudo activar el diagnóstico de fallos nativos')
     try:
         from app.ui.qt import QtWidgets as W, QtCore as C, QtGui as G, exec_app
         from app.ui.main_window import MainWindow
