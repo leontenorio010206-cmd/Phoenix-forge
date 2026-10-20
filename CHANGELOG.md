@@ -1,3 +1,10 @@
+## 1.4.0 — Exportador visual para Digital
+- Pantalla integrada Qt para visualizar el bloque Verilog, pines HDL y diagramas de conexiones.
+- Símbolo SVG y esquema SVG generados automáticamente desde el módulo real del proyecto.
+- Tabla de puertos, exportación ZIP funcional y acceso al banco FPGA virtual.
+- Guía explícita para Digital External File, sin prometer generación automática de .dig ni plugins Tinkercad.
+- Pruebas GUI, de XML SVG y de integridad del paquete de exportación.
+
 ## 1.3.0 — FPGA virtual y exportación para Digital
 - Banco interactivo de señales HDL con testbench generado, reloj manual, entradas de 1 a 16 bits y trazas VCD.
 - Integración del motor Icarus con los diez perfiles FPGA a nivel RTL funcional.
