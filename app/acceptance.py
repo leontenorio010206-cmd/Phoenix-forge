@@ -119,6 +119,14 @@ def run(output, offscreen=False, require_bundled=False):
             app.processEvents()
             assert window.grab().save(str(output / (name+'.png'))), name
         checkpoint('all_navigation')
+        # Navigating Hardware Studio launches a PnP scan on a worker thread.
+        # Never close or destroy QThread while it is still running.
+        window.hardware.timer.stop()
+        deadline = time.monotonic() + 20
+        while window.hardware.worker is not None and time.monotonic() < deadline:
+            app.processEvents(); time.sleep(.01)
+        assert window.hardware.worker is None, 'Hardware enumeration worker hung'
+        checkpoint('hardware_worker_completed')
         assert window.hardware.tabs.count() >= 4, 'Hardware Studio missing Arduino/Pico/FPGA tabs'
         assert window.digital_export is not None
         checkpoint('hardware_and_digital_ui')
