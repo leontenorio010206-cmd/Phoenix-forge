@@ -7,6 +7,7 @@ import subprocess
 import sys
 import shutil
 import time
+import traceback
 try:
     from tools.verify_artifact import inspect_pe
 except ModuleNotFoundError:
@@ -66,42 +67,90 @@ def normal_launch(executable, environment):
 
 
 def verify(executable, output):
-    artifact=inspect_pe(executable,minimum_size=20*1024*1024)
-    if sys.platform!='win32':raise RuntimeError('Native Windows required for packaged acceptance')
+    """Fail closed, retaining diagnostics if the frozen executable crashes.
+
+    Two isolated frozen launches plus a real normal window are required.
+    """
+    artifact = inspect_pe(executable, minimum_size=20*1024*1024)
+    if sys.platform != 'win32':
+        raise RuntimeError('Native Windows required for packaged acceptance')
     import ctypes
-    if hasattr(ctypes.WinDLL('ntdll'),'wine_get_version'):
+    if hasattr(ctypes.WinDLL('ntdll'), 'wine_get_version'):
         raise RuntimeError('Wine is not native Windows acceptance')
-    output.mkdir(parents=True,exist_ok=True)
-    environment=os.environ.copy()
-    system=Path(environment.get('SystemRoot',r'C:\Windows'))
-    environment['PATH']=str(system/'System32')+os.pathsep+str(system)
-    for name in ('PYTHONPATH','PYTHONHOME','QT_PLUGIN_PATH','QML2_IMPORT_PATH','QT_QPA_PLATFORM','PHOENIXFORGE_DATA'):
-        environment.pop(name,None)
-    # Validate the launch path and onefile extraction path with spaces and Unicode.
-    folder = output / 'Prueba Fénix'
-    folder.mkdir(exist_ok=True)
-    copied = folder / executable.name
-    shutil.copy2(str(executable), str(copied))
-    temporary = folder / 'Temporal'
-    temporary.mkdir(exist_ok=True)
-    environment['TEMP'] = environment['TMP'] = str(temporary.resolve())
-    environment['PHOENIXFORGE_DATA'] = str((folder / 'user-data').resolve())
-    ordinary = normal_launch(copied.resolve(), environment)
-    reports=[]
-    for n in (1,2):
-        folder=output/('launch-%d'%n)
-        result=subprocess.run([str(copied.resolve()),'--self-test',str(folder.resolve()),'--require-bundled'],
-                              env=environment,cwd=str(output),timeout=180,shell=False)
-        if result.returncode:raise RuntimeError('Packaged self-test failed: '+str(result.returncode))
-        report=json.loads((folder/'acceptance.json').read_text(encoding='utf-8'))
-        if not all(report.get(k) for k in ('success','frozen','bundled_icarus','native_windows')):
-            raise RuntimeError('Packaged native acceptance requirements not met')
-        reports.append(report)
-    copied.unlink()
-    final={'artifact':artifact,'launches':reports,'ordinary_startup':ordinary,'development_PATH_removed':True,
-           'clean_vm_without_development_tools':False}
-    (output/'packaged-acceptance.json').write_text(json.dumps(final,indent=2),encoding='utf-8')
-    return final
+    output.mkdir(parents=True, exist_ok=True)
+    stage = 'environment'
+    report = {'artifact': artifact, 'passed': False, 'stage': stage}
+    try:
+        environment = os.environ.copy()
+        system = Path(environment.get('SystemRoot', r'C:\Windows'))
+        environment['PATH'] = str(system/'System32') + os.pathsep + str(system)
+        for name in ('PYTHONPATH','PYTHONHOME','QT_PLUGIN_PATH',
+                     'QML2_IMPORT_PATH','QT_QPA_PLATFORM','PHOENIXFORGE_DATA'):
+            environment.pop(name,None)
+        source = Path(executable).resolve()
+        folder = output / 'Prueba Fénix'
+        folder.mkdir(exist_ok=True)
+        copied = folder / source.name
+        shutil.copy2(str(source), str(copied))
+        temporary = folder / 'Temporal'
+        temporary.mkdir(exist_ok=True)
+        environment['TEMP'] = environment['TMP'] = str(temporary.resolve())
+        environment['PHOENIXFORGE_DATA'] = str((folder / 'user-data').resolve())
+        stage = 'ordinary_gui_startup'
+        before = time.monotonic()
+        ordinary = normal_launch(copied.resolve(), environment)
+        gui_seconds = round(time.monotonic()-before, 2)
+        report['ordinary_gui_seconds'] = gui_seconds
+        report['ordinary_startup'] = ordinary
+        reports=[]
+        for n in (1,2):
+            stage = 'frozen_hdl_acceptance_' + str(n)
+            child_dir = output/('launch-%d' % n)
+            before = time.monotonic()
+            result = subprocess.run(
+                [str(copied.resolve()), '--self-test', str(child_dir.resolve()),
+                 '--require-bundled'],
+                env=environment, cwd=str(output), timeout=180, shell=False,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            (output/('launch-%d-console.log' % n)).write_bytes(result.stdout or b'')
+            acceptance = child_dir/'acceptance.json'
+            if result.returncode:
+                detail = ''
+                if acceptance.is_file():
+                    data = json.loads(acceptance.read_text(encoding='utf-8'))
+                    detail = ' stage=%s error=%s\n%s' % (
+                        data.get('failed_stage'),data.get('error'),
+                        str(data.get('traceback', ''))[-1800:])
+                raise RuntimeError('Packaged self-test #%d failed (exit %d):%s' % (
+                    n, result.returncode, detail))
+            if not acceptance.is_file():
+                raise RuntimeError('Frozen executable returned success without acceptance.json')
+            child_report = json.loads(acceptance.read_text(encoding='utf-8'))
+            if not all(child_report.get(k) for k in (
+                    'success','frozen','bundled_icarus','native_windows')):
+                raise RuntimeError('Packaged native acceptance requirements not met: ' + str(child_report))
+            child_report['launch_duration_seconds'] = round(time.monotonic()-before, 2)
+            reports.append(child_report)
+        stage = 'success'
+        final = {
+            'artifact': artifact,
+            'launches': reports,
+            'ordinary_startup': ordinary,
+            'ordinary_gui_seconds': gui_seconds,
+            'development_PATH_removed': True,
+            'clean_vm_without_development_tools': False,
+        }
+        (output/'packaged-acceptance.json').write_text(json.dumps(final,indent=2),encoding='utf-8')
+        report.update({'passed':True,'stage':'success'})
+        return final
+    except Exception as error:
+        report['stage'] = stage
+        report['error'] = str(error)
+        report['traceback'] = traceback.format_exc()
+        raise
+    finally:
+        (output/'packaged-status.json').write_text(
+            json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
 
 
 if __name__=='__main__':
