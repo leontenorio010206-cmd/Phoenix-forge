@@ -9,6 +9,10 @@ printf '%s  %s\n' 'a68cb1ef7c017ef090ebedb2bc3e39ef90ecc70a3400afb4aa94303bc3bea
 cd "$pf_work"
 tar -xzf "$pf_root/vendor/sources/iverilog-12.0.tar.gz"
 cd iverilog-12_0
+# Icarus 12 invokes internal helper programs via the MinGW shell.
+# Its unquoted paths fail inside onefile's Unicode / spaces extraction folder.
+# Apply a reviewed patch to the exact checksum-pinned GPL source tree.
+patch --batch --forward -p1 < "$pf_root/tools/patches/iverilog12-winpaths.patch"
 sh autoconf.sh
 # Deliberately disable optional readline/history: no interactive runtime required.
 export ac_cv_lib_readline_readline=no
