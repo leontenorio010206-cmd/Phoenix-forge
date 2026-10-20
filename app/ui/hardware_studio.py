@@ -5,7 +5,7 @@ from pathlib import Path
 from app.ui.qt import QtCore as C, QtGui as G, QtWidgets as W, Qt, Signal
 from app.ui.common import label, button, card
 from app.hardware.discovery import list_usb_devices, added_devices
-from app.hardware import arduino
+from app.hardware import arduino, fpga
 from app.hardware.arduino_catalog import (model_shortcuts, merge_catalog,
     BASIC_PACK, CORE_HEADERS, EXAMPLES, DEFAULT_CORES)
 from app.devices.catalog import load_profiles
@@ -174,23 +174,218 @@ class HardwareStudio(W.QWidget):
 
     def _make_fpga(self):
         page = W.QWidget()
-        layout = W.QVBoxLayout(page)
-        layout.setContentsMargins(18, 16, 18, 16)
-        layout.addWidget(label("FPGA · síntesis, programación y JTAG", "Heading"))
+        outer = W.QVBoxLayout(page)
+        outer.setContentsMargins(4, 4, 4, 4)
+        scroll = W.QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(W.QFrame.NoFrame)
+        outer.addWidget(scroll)
+        body = W.QWidget()
+        scroll.setWidget(body)
+        layout = W.QVBoxLayout(body)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(9)
+        layout.addWidget(label("FPGA / JTAG Hardware Studio", "Heading"))
         layout.addWidget(label(
-            "Los adaptadores USB/JTAG no garantizan conocer la FPGA conectada. "
-            "Selecciona el chip, placa y herramienta exactos antes de programar. "
-            "PhœnixForge conserva la simulación RTL para diez perfiles; "
-            "en v1.6 no escribe bitstreams arbitrarios por JTAG.", "Muted", True))
+            "Intel/Altera, Xilinx/AMD, Gowin, Lattice, Efinix, Anlogic y más. "
+            "También placas económicas o poco conocidas: lo que cuenta es el chip, "
+            "cable, driver y herramienta compatibles, no el país de fabricación.",
+            "Muted", True))
+        layout.addWidget(label(
+            "USB identifica principalmente el PROGRAMADOR; --detect puede identificar "
+            "un chip accesible por JTAG. Nunca afirma reconocer todas las FPGA.",
+            "Muted", True))
+
+        layout.addWidget(label("Diagnóstico de driver de la interfaz USB seleccionada", "Heading"))
+        driver_actions = W.QHBoxLayout()
+        driver_actions.addWidget(button("Diagnosticar driver Windows", self.fpga_driver_diagnose, True))
+        driver_actions.addWidget(button("Abrir guía oficial de drivers",
+            lambda: G.QDesktopServices.openUrl(C.QUrl(
+                "https://trabucayre.github.io/openFPGALoader/guide/install.html"))))
+        layout.addLayout(driver_actions)
+        self.fpga_driver_text = W.QPlainTextEdit()
+        self.fpga_driver_text.setReadOnly(True)
+        self.fpga_driver_text.setMaximumHeight(145)
+        self.fpga_driver_text.setPlaceholderText(
+            "Selecciona una interfaz USB en Hardware conectado y pulsa Diagnosticar. "
+            "No se reemplazarán drivers ni interfaces serie.")
+        layout.addWidget(self.fpga_driver_text)
+
+        layout.addWidget(label("openFPGALoader · herramienta externa", "Heading"))
+        line = W.QHBoxLayout()
+        self.fpga_tool = W.QLineEdit()
+        self.fpga_tool.setReadOnly(True)
+        self.fpga_tool.setPlaceholderText("openFPGALoader.exe — elegir instalación")
+        line.addWidget(self.fpga_tool, 1)
+        line.addWidget(button("Seleccionar EXE", self.fpga_choose_tool))
+        layout.addLayout(line)
+        settings = C.QSettings("PhoenixForge", "FPGAStudio")
+        self.fpga_tool.setText(settings.value("openfpgaloader", "", type=str))
+        layout.addWidget(button("Consultar todas las placas, cables y FPGA soportados",
+                                self.fpga_read_catalog, True))
+        self.fpga_catalog_text = W.QPlainTextEdit()
+        self.fpga_catalog_text.setReadOnly(True)
+        self.fpga_catalog_text.setMaximumHeight(170)
+        self.fpga_catalog_text.setPlaceholderText(
+            "El catálogo completo se consulta desde tu versión instalada de openFPGALoader.")
+        layout.addWidget(self.fpga_catalog_text)
+
+        selector = W.QHBoxLayout()
+        self.fpga_via = W.QComboBox()
+        self.fpga_via.addItems(["Placa (-b)", "Cable (-c)"])
+        self.fpga_via.currentIndexChanged.connect(self.fpga_change_via)
+        selector.addWidget(self.fpga_via)
+        self.fpga_target = W.QComboBox()
+        self.fpga_target.setEditable(True)
+        self.fpga_target.setMinimumWidth(180)
+        self.fpga_target.addItems([entry[1] for entry in fpga.examples()])
+        selector.addWidget(self.fpga_target, 1)
+        selector.addWidget(button("Detectar chip por JTAG", self.fpga_probe))
+        layout.addLayout(selector)
+        layout.addWidget(label(
+            "Ejemplos: Sipeed Tang Nano, QMTech Cyclone, iCEBreaker, ULX3S, Arty. "
+            "Para otra placa china, rusa o genérica escribe su identificador oficial "
+            "tras comprobarlo en --list-boards. Para un cable sin perfil de placa usa -c.",
+            "Muted", True))
+
+        layout.addWidget(label("Cargar bitstream (solo si conoces la placa exacta)", "Heading"))
+        firmware = W.QHBoxLayout()
+        self.fpga_firmware = W.QLineEdit()
+        self.fpga_firmware.setReadOnly(True)
+        self.fpga_firmware.setPlaceholderText("Selecciona bitstream válido para el FPGA físico")
+        firmware.addWidget(self.fpga_firmware, 1)
+        firmware.addWidget(button("Elegir bitstream", self.fpga_choose_bitstream))
+        layout.addLayout(firmware)
+        target_type = W.QHBoxLayout()
+        self.fpga_storage = W.QComboBox()
+        self.fpga_storage.addItems(["SRAM — temporal", "FLASH — persistente"])
+        target_type.addWidget(self.fpga_storage)
+        target_type.addWidget(button("Programar FPGA (confirmación obligatoria)",
+                                      self.fpga_program, True))
+        layout.addLayout(target_type)
+        layout.addWidget(label(
+            "No sintetiza ni crea bitstreams por sí solo. Necesitas el archivo "
+            "generado por un toolchain compatible. La escritura FLASH puede "
+            "sobrescribir arranque/configuración y exige doble confirmación.",
+            "Muted", True))
+        links = W.QHBoxLayout()
         for title, url in [
-            ("openFPGALoader · placas compatibles", "https://github.com/trabucayre/openFPGALoader"),
-            ("nextpnr · familias soportadas", "https://github.com/YosysHQ/nextpnr"),
-            ("Arduino CLI · controladores oficiales", "https://docs.arduino.cc/arduino-cli/installation"),
+            ("openFPGALoader", "https://github.com/trabucayre/openFPGALoader"),
+            ("nextpnr", "https://github.com/YosysHQ/nextpnr"),
+            ("Intel/AMD", "https://trabucayre.github.io/openFPGALoader/compatibility/fpga.html"),
         ]:
-            layout.addWidget(button(title, lambda link=url:
+            links.addWidget(button(title, lambda link=url:
                 G.QDesktopServices.openUrl(C.QUrl(link))))
+        layout.addLayout(links)
         layout.addStretch()
         self.tabs.addTab(page, "FPGA / Drivers")
+
+    def fpga_change_via(self, index):
+        self.fpga_target.clear()
+        if index == 0:
+            self.fpga_target.addItems([entry[1] for entry in fpga.examples()])
+        else:
+            # Popular supported cable types, to be verified with --list-cables.
+            self.fpga_target.addItems(["usb-blaster", "ft2232", "cmsisdap"])
+
+    def fpga_choose_tool(self):
+        path, _ = W.QFileDialog.getOpenFileName(self, "Seleccionar openFPGALoader",
+                str(Path.home()), "Herramienta FPGA (openFPGALoader.exe)")
+        if not path:
+            return
+        try:
+            fpga.find_loader(path)
+        except (OSError, ValueError) as error:
+            W.QMessageBox.warning(self, "Herramienta FPGA", str(error))
+            return
+        self.fpga_tool.setText(path)
+        C.QSettings("PhoenixForge", "FPGAStudio").setValue("openfpgaloader", path)
+
+    def fpga_choose_bitstream(self):
+        path, _ = W.QFileDialog.getOpenFileName(self, "Bitstream de tu FPGA",
+            str(Path.home()), "Bitstream FPGA (*.bit *.bin *.fs *.svf *.jed *.pof *.rbf *.hex *.mcs)")
+        if path:
+            self.fpga_firmware.setText(path)
+
+    def fpga_driver_diagnose(self):
+        selected = self.list.currentItem()
+        if selected is None:
+            W.QMessageBox.information(self, "Driver FPGA",
+                                      "Selecciona un dispositivo USB de la lista de la izquierda.")
+            return
+        dev = selected.data(Qt.UserRole)
+        hint, note = fpga.cable_hint(dev.name, dev.identity)
+        if hint == "No identificado":
+            self.fpga_driver_text.setPlainText(
+                "No hay coincidencia segura para FPGA. " + note +
+                "\nSe puede diagnosticar el driver USB sin instalar nada.")
+        self._run("Diagnosticando driver FPGA",
+                  lambda: fpga.driver_report(dev.identity), self._fpga_driver_result)
+
+    def _fpga_driver_result(self, data):
+        lines = [
+            "Adaptador: " + data["probe"],
+            "Nombre Windows: " + data["device_name"],
+            "Driver / servicio: " + data["service"],
+            "Proveedor: " + data["provider"],
+            "Versión: " + data["version"],
+            "INF: " + data["inf"],
+            "Estado: " + data["windows_status"],
+            "Código de problema: " + str(data["problem_code"]),
+            "Notas: " + data["description"],
+            *["AVISO: " + text for text in data["alerts"]],
+            data["driver_installation"]
+        ]
+        self.fpga_driver_text.setPlainText("\n".join(lines))
+
+    def fpga_read_catalog(self):
+        path = self.fpga_tool.text().strip() or None
+        self._run("Consultando openFPGALoader",
+                  lambda: fpga.catalog(path), self._fpga_catalog_result)
+
+    def _fpga_catalog_result(self, catalogs):
+        self.fpga_catalog_text.setPlainText("\n\n".join(
+            ("=== " + name.upper() + " ===\n" + content)
+            for name, content in catalogs.items()))
+        self.log.appendPlainText("Catálogo openFPGALoader actualizado desde el ejecutable elegido.")
+
+    def fpga_probe(self):
+        target = self.fpga_target.currentText().strip()
+        via = "board" if self.fpga_via.currentIndex() == 0 else "cable"
+        if not self._confirm("Exploración JTAG FPGA",
+            "Se accederá al bus JTAG conectado mediante openFPGALoader.\n"
+            "Placa/cable: " + target + "\nNo instalará drivers ni escribirá bitstream."
+            "\nComprueba que otros programas no estén usando el cable. ¿Continuar?"):
+            return
+        self._run("Consultando ID JTAG",
+                  lambda: fpga.probe_target(target, via, self.fpga_tool.text().strip() or None),
+                  lambda result: self.fpga_catalog_text.setPlainText(
+                      "Detección JTAG:\n" + str(result)[-10000:]))
+
+    def fpga_program(self):
+        target = self.fpga_target.currentText().strip()
+        firmware = self.fpga_firmware.text().strip()
+        via = "board" if self.fpga_via.currentIndex() == 0 else "cable"
+        flash = self.fpga_storage.currentIndex() == 1
+        if not target or not firmware:
+            W.QMessageBox.warning(self, "Programar FPGA",
+                "Elige primero una placa/cable y un bitstream compatible.")
+            return
+        warning = ("FLASH PERMANENTE" if flash else "SRAM TEMPORAL")
+        detail = ("Dispositivo: " + target + " (" + via + ")\n"
+                  "Archivo: " + firmware + "\nDestino: " + warning +
+                  "\n\nUna selección equivocada puede inutilizar la configuración "
+                  "de la FPGA. Debes verificar chip, voltajes, cable y bitstream.")
+        if not self._confirm("GRABAR HARDWARE FPGA", detail + "\n\n¿Continuar?"):
+            return
+        if flash and not self._confirm("CONFIRMAR FLASH PERMANENTE",
+            "La memoria no volátil puede sobrescribirse. ¿Confirmas la escritura FLASH?"):
+            return
+        self._run("Programando FPGA " + warning, lambda:
+            fpga.program_target(target, firmware, via, flash,
+                               self.fpga_tool.text().strip() or None),
+            lambda result: self.fpga_catalog_text.setPlainText(
+                "Resultado de programación:\n" + str(result)[-10000:]))
 
     def _make_arduino_catalog(self):
         page = W.QWidget()
