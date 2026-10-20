@@ -20,7 +20,7 @@ CLI_VERSION = "1.5.1"
 CLI_URL = ("https://github.com/arduino/arduino-cli/releases/download/v1.5.1/"
            "arduino-cli_1.5.1_Windows_64bit.zip")
 CLI_SHA256 = "fabe42e0eb04d00e776a66178299ff95a46c623dbc260f997e58fd514853dd40"
-FQBN_RE = re.compile(r"^[A-Za-z0-9_]+:[A-Za-z0-9_]+:[A-Za-z0-9_.-]+$")
+FQBN_RE = re.compile(r"^[A-Za-z0-9_]+:[A-Za-z0-9_]+:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_]+=[A-Za-z0-9_.-]+(?:,[A-Za-z0-9_]+=[A-Za-z0-9_.-]+)*)?$")
 CORE_RE = re.compile(r"^arduino:[A-Za-z0-9_-]+$")
 LIB_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_. \-]{0,99}$")
 PORT_RE = re.compile(r"^(COM[1-9][0-9]{0,2}|/dev/tty(?:ACM|USB)[0-9]+)$", re.I)
