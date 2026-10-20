@@ -59,21 +59,26 @@ class IcarusEngine(Simulator):
             process = subprocess.Popen(command, cwd=str(cwd), stdout=stream, stderr=subprocess.STDOUT,
                                        stdin=subprocess.DEVNULL, shell=False, env=environment, **process_options())
             deadline = time.monotonic() + timeout
+            next_disk_check = 0.0
             try:
                 while process.poll() is None:
                     reason = ""
+                    now = time.monotonic()
                     if cancel.is_set():
                         reason = "Simulación cancelada"
-                    elif time.monotonic() > deadline:
+                    elif now > deadline:
                         reason = "Tiempo máximo de ejecución agotado"
-                    elif Path(log).stat().st_size > LOG_LIMIT:
-                        reason = "La salida excedió el límite de 2 MiB"
-                    elif sum(p.stat().st_size for p in Path(cwd).rglob("*.vcd") if p.is_file()) > ARTIFACT_LIMIT:
-                        reason = "El VCD excedió el límite de 24 MiB"
+                    elif now >= next_disk_check:
+                        # Avoid walking VCD trees 40 times/s on laptops with HDDs.
+                        next_disk_check = now + 0.25
+                        if Path(log).stat().st_size > LOG_LIMIT:
+                            reason = "La salida excedió el límite de 2 MiB"
+                        elif sum(p.stat().st_size for p in Path(cwd).rglob("*.vcd") if p.is_file()) > ARTIFACT_LIMIT:
+                            reason = "El VCD excedió el límite de 24 MiB"
                     if reason:
                         stop_process(process)
                         raise RuntimeError(reason)
-                    time.sleep(0.025)
+                    time.sleep(0.05)
                 return process.returncode
             finally:
                 if process.poll() is None:
