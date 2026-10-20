@@ -1,0 +1,36 @@
+name: PhoenixForge | Pruebas de fuente
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Instalar Qt, pytest e Icarus
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y iverilog libegl1
+          python -m pip install -r requirements/modern.txt -r requirements/test-modern.txt
+      - name: Revisar sintaxis
+        run: python -m compileall -q app tests
+      - name: Pruebas completas RTL y GUI offscreen
+        run: python -m pytest -q -m 'not packaged' --junitxml=source-tests.xml
+      - name: Guardar reportes en fallos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PhoenixForge-tests-report
+          path: source-tests.xml
+          if-no-files-found: ignore
