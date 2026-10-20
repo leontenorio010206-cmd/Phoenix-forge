@@ -9,6 +9,7 @@ from dataclasses import dataclass
 BOARD_SHORTCUTS = (
     ("Uno R3", "arduino:avr:uno", "arduino:avr"),
     ("Nano clásico", "arduino:avr:nano", "arduino:avr"),
+    ("Nano compatible · bootloader antiguo", "arduino:avr:nano:cpu=atmega328old", "arduino:avr"),
     ("Mega 2560", "arduino:avr:mega", "arduino:avr"),
     ("Leonardo", "arduino:avr:leonardo", "arduino:avr"),
     ("Micro", "arduino:avr:micro", "arduino:avr"),
