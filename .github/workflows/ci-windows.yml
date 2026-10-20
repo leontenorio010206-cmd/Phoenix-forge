@@ -1,4 +1,4 @@
-name: PhoenixForge | Windows 10 x64 v1.6.1
+name: PhoenixForge | Windows 10 x64 v1.6.2
 
 on:
   workflow_dispatch:
@@ -71,7 +71,7 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          python tools/package_release.py --output dist/PhoenixForge_v1.6.1.1_Source.zip
+          python tools/package_release.py --output dist/PhoenixForge_v1.6.2_Source.zip
       - name: Comprobar que existe el ejecutable
         shell: pwsh
         run: |
@@ -91,7 +91,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: PhoenixForge-Windows-v1.6.1
+          name: PhoenixForge-Windows-v1.6.2
           path: |
             dist/*.exe
             dist/*.zip
@@ -104,7 +104,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: PhoenixForge-v1.6.1-Diagnosticos
+          name: PhoenixForge-v1.6.2-Diagnosticos
           path: |
             build/*.json
             build/*.txt

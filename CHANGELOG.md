@@ -1,3 +1,10 @@
+## 1.6.2 — FPGA / Drivers Hardware Studio
+- Detección de interfaces USB de programadores y diagnóstico de driver Windows real (proveedor, INF, servicio, versión, problema PnP), sin modificaciones automáticas.
+- Catálogo de placas, programadores y familias consultado dinámicamente desde openFPGALoader; atajos a Gowin Tang Nano, QMTech Cyclone, Lattice, Digilent y Efinix.
+- Detección JTAG de chip con --detect y selección de cable o placa.
+- Programación de bitstream en SRAM o FLASH con confirmaciones diferenciadas, sin cambios silenciosos de drivers.
+- Pruebas de reconocimiento conservador de adaptadores, seguridad de comandos y rutas, diagnóstico y GUI. Hardware físico pendiente de certificar.
+
 ## 1.6.1 — Arduino: catálogo y bibliotecas
 - Identificación USB de Arduino y adaptadores usados en clones con advertencia explícita: autenticidad no verificable.
 - Lista inicial de modelos y lectura dinámica de todos los FQBN disponibles en los cores Arduino instalados.
