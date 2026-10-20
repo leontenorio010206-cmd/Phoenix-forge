@@ -80,6 +80,7 @@ def test_sketch_folder_and_compile_argv(tmp_path):
     assert calls[0][0][1:4] == ["compile", "--fqbn", "arduino:avr:uno"]
     with pytest.raises(ValueError):
         arduino.upload_sketch(folder, "arduino:avr:uno", "COM4 & rm", cli="arduino-cli", runner=fake_runner)
+    (folder.parent / (folder.name + "-build")).mkdir(exist_ok=True)
     assert "uploaded" in arduino.upload_sketch(folder, "arduino:avr:uno", "COM4",
         cli="arduino-cli", runner=lambda args, **kwargs:
         subprocess.CompletedProcess(args, 0, "uploaded", ""))
