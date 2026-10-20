@@ -29,6 +29,29 @@ jobs:
             (Resolve-Path installer/install_optional.ps1).Path,
             [ref]$tokens, [ref]$parseErrors) | Out-Null
           if ($parseErrors.Count -gt 0) { throw ($parseErrors | Out-String) }
+      - name: End-to-end real Digital and Temurin downloads (Windows PowerShell 5.1)
+        shell: pwsh
+        run: |
+          $prefix = Join-Path $env:RUNNER_TEMP 'PhoenixForge-Real-Optional-Integration'
+          $installer = (Resolve-Path installer/install_optional.ps1).Path
+          $ps51 = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+          foreach ($component in @('java', 'digital')) {
+            & $ps51 -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $installer -Component $component -InstallDir $prefix
+            if ($LASTEXITCODE -ne 0) { throw "Install failed: $component ($LASTEXITCODE)" }
+            $folder = if ($component -eq 'java') { 'Temurin-JRE21' } else { 'Digital-v0.31' }
+            $root = Join-Path $prefix ('Integrations\' + $folder)
+            $receipt = Get-Content (Join-Path $root 'phoenixforge-component.json') -Raw | ConvertFrom-Json
+            $asset = Join-Path $root $receipt.relative_path
+            if (-not (Test-Path -LiteralPath $asset -PathType Leaf)) {
+              throw "Missing installed executable for $component"
+            }
+            if ((Get-FileHash -LiteralPath $asset -Algorithm SHA256).Hash.ToLowerInvariant() -ne $receipt.file_sha256) {
+              throw "Corrupted installed executable for $component"
+            }
+            Write-Host "$component OK: $asset"
+            & $ps51 -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $installer -Component $component -InstallDir $prefix
+            if ($LASTEXITCODE -ne 0) { throw "Idempotence failed: $component" }
+          }
       - name: Install test-only NSIS compiler
         shell: pwsh
         run: |
