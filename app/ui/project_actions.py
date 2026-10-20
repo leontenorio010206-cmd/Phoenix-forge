@@ -4,11 +4,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from functools import wraps
 
-from app.ui.qt import QtWidgets as W
+from app.ui.qt import QtCore as C, QtWidgets as W
 from app.core.project import Project
 from app.core.examples import adder_project, clock_project
 from app.exporters.bundle import export_bundle
 from app.exporters.digital_hdl import export_digital_component
+from app.integrations.digital_bridge import (export_unpacked_component, launch_digital,
+    port_config, prepare_icarus_for_digital)
 from app.utils.paths import safe_relative, user_projects_dir
 
 
@@ -190,6 +192,72 @@ class ProjectActions:
             "configura Icarus y comprueba los puertos. El ZIP incluye "
             "symbol.svg y connections.svg, además de la guía de importación. "
             "Las vistas SVG no son un componente .dig ni un plugin de Tinkercad.")
+        return True
+
+    @guarded
+    def copy_digital_settings(self, top=None):
+        fields = port_config(self.project, top)
+        text = ("Etiqueta: {etiqueta}\nEntradas: {entradas}\nSalidas: {salidas}\n"
+                "Aplicación: {aplicacion}").format(**fields)
+        W.QApplication.clipboard().setText(text)
+        self.statusBar().showMessage("Ajustes de Digital copiados al portapapeles", 7000)
+        return text
+
+    @guarded
+    def prepare_and_open_digital(self, top=None):
+        """Opt-in: stage an Icarus copy, unpack HDL and open Digital.jar.
+
+        Digital's own settings are left alone; users may need to set IVerilog
+        folder once inside Digital. An executable .dig is NOT manufactured.
+        """
+        top = top if isinstance(top, str) and top else self.project.simulation.get("top", "")
+        settings = C.QSettings("PhoenixForge", "DigitalBridge")
+        jar = settings.value("digital_jar", "", type=str)
+        if not jar or not Path(jar).is_file():
+            jar, _ = W.QFileDialog.getOpenFileName(
+                self, "Selecciona tu Digital.jar ya descomprimido",
+                str(Path.home() / "Downloads"), "Digital Java (Digital.jar)")
+            if not jar:
+                return False
+        if Path(jar).name.lower() != "digital.jar":
+            raise ValueError("Seleccione el archivo Digital.jar, no un ZIP ni un ejecutable")
+        fields = port_config(self.project, top)
+        answer = W.QMessageBox.question(
+            self, "Preparar Digital",
+            "PhœnixForge copiará el runtime Icarus incluido a su carpeta de "
+            "datos de usuario, exportará component.v sin comprimir y abrirá el "
+            "Digital.jar que seleccionaste. No instalará Java, no modificará "
+            "la configuración de Digital ni cambiará el PATH global.\n\n"
+            "Digital podrá ejecutar el código HDL cuando lo vincules y simules. "
+            "Hazlo solo con proyectos de confianza. ¿Continuar?",
+            W.QMessageBox.Yes | W.QMessageBox.No, W.QMessageBox.No)
+        if answer != W.QMessageBox.Yes:
+            return False
+        icarus = prepare_icarus_for_digital()
+        component = export_unpacked_component(self.project, top)
+        launch_digital(jar, icarus)
+        settings.setValue("digital_jar", str(Path(jar).resolve()))
+        self.digital_export.set_last_export(component)
+        self.project.export_state["last_digital"] = {
+            "module": top, "filename": component.name,
+            "utc": datetime.now(timezone.utc).isoformat(),
+            "format": "Digital External File preparado"
+        }
+        self.mark_dirty()
+        details = ("Archivo Verilog preparado:\n" + str(component) +
+                   "\n\nCarpeta IVerilog para Digital → Editar → Ajustes:\n" +
+                   str(icarus) + "\n\nEtiqueta: " + fields["etiqueta"] +
+                   "\nEntradas: " + fields["entradas"] +
+                   "\nSalidas: " + fields["salidas"] +
+                   "\nAplicación: IVerilog")
+        W.QApplication.clipboard().setText(details)
+        W.QMessageBox.information(self, "Digital preparado",
+            "Digital se ha iniciado con Icarus disponible en su entorno. "
+            "Si todavía muestra «Icarus no instalado», configura UNA VEZ "
+            "la carpeta indicada en Editar → Ajustes → IVerilog.\n\n"
+            "Para insertar la ALU: Componentes → Varios → VHDL/Verilog → "
+            "Archivo externo. Selecciona component.v, no un ZIP.\n\n"
+            + details + "\n\nCopié estos datos al portapapeles.")
         return True
 
     @guarded
