@@ -76,12 +76,14 @@ def test_windows_crlf_probe_output_parser():
 def test_export_digital_component_real_hdl(tmp_path):
     project = adder_project()
     files = digital_component_files(project)
-    assert set(files) == {"component.v", "ports.json", "LEEME_DIGITAL.txt"}
+    assert set(files) == {"component.v", "ports.json", "LEEME_DIGITAL.txt", "symbol.svg", "connections.svg"}
     assert b"module full_adder" in files["component.v"]
     assert b"module tb_full_adder" not in files["component.v"]
     manifest = json.loads(files["ports.json"])
     assert manifest["top"] == "full_adder"
     assert len(manifest["ports"]) == 5
+    assert manifest["symbol_preview"] == "symbol.svg"
+    assert manifest["wiring_preview"] == "connections.svg"
     archive = tmp_path / "digital.zip"
     export_digital_component(project, archive)
     with zipfile.ZipFile(archive) as zipped:
