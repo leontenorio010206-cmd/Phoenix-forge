@@ -130,7 +130,10 @@ class HardwareStudio(W.QWidget):
         layout.addLayout(tools)
         layout.addWidget(label("Sketch C++ (.ino), listo para editar, compilar y enviar", "Muted"))
         self.sketch = W.QPlainTextEdit(EXAMPLE)
-        self.sketch.setTabStopDistance(32)
+        if hasattr(self.sketch, "setTabStopDistance"):
+            self.sketch.setTabStopDistance(32)
+        else:
+            self.sketch.setTabStopWidth(32)
         font = G.QFont("Consolas", 10)
         self.sketch.setFont(font)
         layout.addWidget(self.sketch, 1)
