@@ -41,6 +41,8 @@ class SvgPreview(W.QWidget):
 class DigitalExportPanel(W.QWidget):
     export_requested = Signal(str)
     virtual_requested = Signal()
+    bridge_requested = Signal(str)
+    copy_settings_requested = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -98,13 +100,17 @@ class DigitalExportPanel(W.QWidget):
         side.addSpacing(5)
         self.export_button = button("⬇  Exportar componente ZIP", self.request_export, True)
         side.addWidget(self.export_button)
+        self.bridge_button = button("⚡ Preparar y abrir Digital", self.request_bridge, True)
+        side.addWidget(self.bridge_button)
+        side.addWidget(button("📋 Copiar ajustes de puertos", self.copy_settings))
         side.addWidget(button("▶  Probar entradas y salidas", self.virtual_requested.emit))
         self.folder_button = button("▣  Abrir carpeta exportada", self.open_folder)
         self.folder_button.setEnabled(False)
         side.addWidget(self.folder_button)
         side.addStretch()
-        side.addWidget(label("El SVG es una vista del diseño. Digital utiliza component.v mediante "
-                             "External File; el símbolo no se instala automáticamente.", "Muted", True))
+        side.addWidget(label("El asistente prepara el Verilog sin ZIP y una copia de Icarus "
+                             "para Digital. No cambia sus ajustes; si Digital pide la ruta "
+                             "de IVerilog, se configura una vez. El símbolo SVG es ilustrativo.", "Muted", True))
         upper.addWidget(right, 2)
         root.addLayout(upper)
 
@@ -189,6 +195,7 @@ class DigitalExportPanel(W.QWidget):
             self.status.setText("Vista generada desde los puertos HDL de " + name +
                                 ". Revisa que el módulo y las fuentes sean compatibles con Digital.")
             self.export_button.setEnabled(True)
+            self.bridge_button.setEnabled(True)
             self.populate_pins()
         except (ValueError, KeyError) as error:
             self.pinout = []
@@ -198,6 +205,15 @@ class DigitalExportPanel(W.QWidget):
             self.info.setText("Exportación no disponible:\n" + str(error))
             self.status.setText(str(error))
             self.export_button.setEnabled(False)
+            self.bridge_button.setEnabled(False)
+
+    def request_bridge(self):
+        if self.pinout and self.top.currentText():
+            self.bridge_requested.emit(self.top.currentText())
+
+    def copy_settings(self):
+        if self.pinout:
+            self.copy_settings_requested.emit(self.top.currentText())
 
     def populate_pins(self):
         self.pin_table.setRowCount(len(self.pinout))
