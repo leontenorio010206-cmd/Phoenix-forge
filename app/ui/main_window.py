@@ -10,7 +10,8 @@ from app.ui.qt import QtCore as C, QtGui as G, QtWidgets as W, Qt, Signal, QActi
 from app.ui.common import button, card, label
 from app.ui.theme import STYLE
 from app.ui.studio import Studio
-from app.ui.labs import ClockLab
+from app.ui.examples_panel import ExamplesPanel
+from app.devices.simulation import device_demo_project, rtl_readiness
 from app.ui.management import DevicePanel, PluginPanel, SettingsPanel
 from app.ui.project_actions import ProjectActions, guarded
 from app.core.project import Project
@@ -68,7 +69,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         side.addWidget(version)
         self.navigation = W.QListWidget()
         self.navigation.setObjectName("Navigation")
-        self.navigation.addItems(["Inicio", "Estudio HDL", "Dispositivos FPGA", "Relojes y semáforo", "Plugins", "Configuración"])
+        self.navigation.addItems(["Inicio", "Estudio HDL", "Dispositivos FPGA", "Proyectos de muestra", "Plugins", "Configuración"])
         side.addWidget(self.navigation, 1)
         build = label("   v%s  /  %s\n   RTL · Sin programación física" % (__version__, BINDING), "Muted")
         build.setStyleSheet("font-size: 10px; color: #7f94ad;")
@@ -77,18 +78,18 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.stack = W.QStackedWidget()
         self.home = self.make_home()
         self.studio = Studio()
-        self.clock = ClockLab()
+        self.examples = ExamplesPanel()
         self.devices = DevicePanel()
         self.plugins = PluginPanel(lambda: copy.deepcopy(self.project))
         self.settings = SettingsPanel()
-        for widget in (self.home, self.studio, self.devices, self.clock, self.plugins, self.settings):
+        for widget in (self.home, self.studio, self.devices, self.examples, self.plugins, self.settings):
             self.stack.addWidget(widget)
         self.navigation.currentRowChanged.connect(self.stack.setCurrentIndex)
         shell.addWidget(self.stack, 1)
         self.setCentralWidget(container)
         self.connect_actions()
         self.make_menus()
-        self.replace_project(clock_project(), dirty=False)
+        self.replace_project(Project(name="Proyecto nuevo", files={"main.v": "module main(input a, output y);\n  assign y = a;\nendmodule\n"}, simulation={"top": "main", "testbench": "", "timeout": 15}), dirty=False)
         self.navigate(0)
         self.update_tool_status()
 
@@ -109,7 +110,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         cards = W.QHBoxLayout()
         for number, title, text, action in (
                 ("01 / DISPOSITIVOS", "Elige tu FPGA", "Diez perfiles documentados.\nSelecciona tu dispositivo y organiza las asignaciones de pines.", lambda: self.navigate(2)),
-                ("02 / SECUENCIAL", "El tiempo en hardware", "Contadores, divisores y semáforo.\nDel reloj de 50 MHz a una simulación que puedes controlar.", lambda: self.navigate(3))):
+                ("02 / EJEMPLOS", "Aprende con proyectos", "Semáforo y divisores, sumador, y contador RTL.\nAbre, modifica y simula sin perder los ejemplos.", lambda: self.navigate(3))):
             frame, inner = card()
             inner.addWidget(label(number, "Eyebrow"))
             inner.addWidget(label(title, "Heading"))
@@ -133,8 +134,9 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.studio.cancel_requested.connect(self.cancel_simulation)
         self.studio.import_requested.connect(self.import_sources)
         self.studio.new_source_requested.connect(self.new_source)
-        self.clock.create_requested.connect(self.new_clock)
-        self.clock.trace_requested.connect(self.clock_trace)
+        self.examples.example_requested.connect(self.open_example)
+        self.devices.demo_requested.connect(self.open_device_demo)
+        self.devices.simulate_requested.connect(self.simulate_selected_device)
         self.devices.device_selected.connect(self.choose_device)
         self.devices.pins_changed.connect(self.change_pins)
         self.settings.saved.connect(lambda _: self.update_tool_status())
@@ -192,6 +194,27 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.project.simulation[field] = name
         self.mark_dirty()
 
+    def open_example(self, key):
+        if key == "clock":
+            self.new_clock()
+        elif key == "adder":
+            self.new_adder()
+        elif key == "device":
+            self.open_device_demo(self.project.device)
+
+    @guarded
+    def open_device_demo(self, device):
+        if self.can_replace():
+            self.replace_project(device_demo_project(device))
+            self.statusBar().showMessage("Demo RTL preparada para el perfil elegido. Pulse F5 para simular.", 10000)
+
+    @guarded
+    def simulate_selected_device(self, device):
+        # Preserve the current sources while switching the selected RTL profile.
+        self.choose_device(device)
+        self.navigate(1)
+        self.run_simulation()
+
     def choose_device(self, device):
         self.project.device = device
         self.mark_dirty()
@@ -213,13 +236,18 @@ class MainWindow(W.QMainWindow, ProjectActions):
     def run_simulation(self):
         if self.worker is not None:
             return
+        errors, warnings = rtl_readiness(self.project)
+        if errors:
+            W.QMessageBox.warning(self, "Simulación FPGA", "\n".join(errors))
+            return
         values = self.settings.values
         engine = IcarusEngine(values.get("iverilog", ""), values.get("vvp", ""))
         if not engine.available:
             W.QMessageBox.warning(self, "Motor HDL no disponible", "No se encontraron los componentes de Icarus.\nEn el portable, usa las rutas vacías para seleccionar el motor integrado. Si falta, vuelve a obtener el paquete completo.\nLa ejecución desde fuentes admite una instalación externa.\nLos modelos internos siguen disponibles.")
             return
         answer = W.QMessageBox.question(self, "Ejecutar simulación HDL",
-            "Se ejecutarán Icarus y el testbench en una carpeta de trabajo separada. HDL puede usar operaciones de archivos; este proceso no es una sandbox.\n\n¿Confía en estas fuentes y desea simularlas?",
+            "Perfil: " + self.devices.profiles[self.project.device]["name"] + "\n" + "\n".join(warnings) +
+            "\n\nIcarus ejecutará el testbench en una carpeta separada. HDL puede operar con archivos; no es una sandbox.\n\n¿Confía en estas fuentes y desea simularlas?",
             W.QMessageBox.Yes | W.QMessageBox.No, W.QMessageBox.Yes)
         if answer != W.QMessageBox.Yes:
             return
@@ -286,10 +314,6 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.studio.output_tabs.setCurrentWidget(self.studio.wave)
 
     @guarded
-    def clock_trace(self, red, green, yellow):
-        self.attach_internal(internal_clock_result(red, green, yellow), "internal_clock")
-
-    @guarded
     def external_wave(self):
         tool = find_executable(self.settings.values.get("gtkwave", ""), "gtkwave")
         if not tool:
@@ -307,7 +331,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         if path.exists():
             dialog = W.QMessageBox(self)
             dialog.setWindowTitle("Manual de usuario")
-            dialog.setText("Guarde un proyecto, edite sus módulos y pulse F5 para compilar.\nLos laboratorios se abren desde la barra lateral.\nManual completo: " + str(path))
+            dialog.setText("Guarde un proyecto, edite sus módulos y pulse F5 para compilar.\nLos proyectos de muestra se abren desde la barra lateral.\nManual completo: " + str(path))
             dialog.setDetailedText(path.read_text(encoding="utf-8"))
             from app.ui.qt import exec_dialog
             exec_dialog(dialog)
@@ -335,7 +359,6 @@ class MainWindow(W.QMainWindow, ProjectActions):
         if not self.confirm_discard():
             event.ignore()
             return
-        self.clock.stop()
         for pid in list(self.plugins.manager.loaded):
             try:
                 self.plugins.manager.unload(pid)

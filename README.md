@@ -85,3 +85,7 @@ docs/        Documentación de usuario y de desarrollo
 Código propio y marca del proyecto: **MIT** (ver [LICENSE](LICENSE)). El uso y redistribución de componentes de terceros se rige por sus licencias respectivas: ver [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 > PhœnixForge es un proyecto independiente. La presencia de perfiles de terceros no implica afiliación ni certificación de los fabricantes.
+
+## Próxima actualización: proyectos de muestra y perfiles RTL
+
+La rama de desarrollo `feature/fpga-rtl-examples` organiza el semáforo/divisores y el sumador bajo **Proyectos de muestra**. Desde **Dispositivos FPGA** permite crear y simular un contador RTL autoverificable en cualquiera de los diez perfiles. Consulta [alcance y límites](docs/RTL_PROFILES.md). La simulación RTL no implica emulación física ni programación de cada chip.
