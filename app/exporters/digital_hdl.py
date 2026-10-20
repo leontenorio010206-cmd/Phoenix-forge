@@ -11,6 +11,7 @@ from pathlib import Path, PurePosixPath
 from app.core.hdl import modules, ports, identifier
 from app.devices.catalog import load_profiles
 from app.utils.paths import safe_relative
+from app.exporters.digital_symbol import build_component_svg
 
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
 
@@ -68,6 +69,7 @@ def digital_component_files(project, top=None):
         "version": 1, "project_name": project.name, "device_profile": project.device,
         "top": top, "source": "component.v", "sha256": digest,
         "ports": pinout, "engine": "Icarus Verilog",
+        "symbol_preview": "symbol.svg", "wiring_preview": "connections.svg",
         "scope": "RTL functional; no chip timing, physical pins, JTAG or bitstream",
     }
     readme = """PhœnixForge — componente HDL para Digital (Helmut Neemann)
@@ -92,13 +94,24 @@ Limitaciones: los includes locales se integran al archivo; los parámetros,
 IP de fabricante, modelos analógicos y pines de encapsulado no se emulan.
 Para publicar un JAR de Digital se necesita otro adaptador de su API Java.
 
+Archivos visuales adicionales:
+- symbol.svg: representación automática del bloque con sus puertos HDL.
+- connections.svg: ejemplo visual de interruptores/reloj y salidas LED.
+Son diagramas de referencia, NO archivos .dig ni librerías Java.
+Digital permite importar SVG como forma personalizada en algunos tipos de
+componentes, pero no se instala automáticamente como símbolo del componente
+External File. El circuito debe enlazarse a component.v de forma manual.
+El gráfico no representa pines físicos de una FPGA.
+
 Digital oficial: https://github.com/hneemann/Digital
 Documentación de External File: https://github.com/hneemann/Digital/discussions/798
 """
     return {
         "component.v": merged,
         "ports.json": (json.dumps(manifest, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
-        "LEEME_DIGITAL.txt": readme.encode("utf-8")
+        "LEEME_DIGITAL.txt": readme.encode("utf-8"),
+        "symbol.svg": build_component_svg(top, pinout),
+        "connections.svg": build_component_svg(top, pinout, connections=True)
     }
 
 

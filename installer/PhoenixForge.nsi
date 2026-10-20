@@ -5,8 +5,8 @@ Unicode true
 !ifndef PF_ROOT
  !error "Pass /DPF_ROOT=source-root"
 !endif
-Name "PhœnixForge 1.3.0"
-OutFile "${PF_ROOT}\dist\PhoenixForge_v1.3.0_Setup.exe"
+Name "PhœnixForge 1.4.0"
+OutFile "${PF_ROOT}\dist\PhoenixForge_v1.4.0_Setup.exe"
 InstallDir "$LOCALAPPDATA\Programs\PhoenixForge"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
@@ -44,7 +44,7 @@ FunctionEnd
 Section "PhœnixForge (obligatorio)" Main
  SectionIn RO
  SetOutPath "$INSTDIR"
- File /oname=PhoenixForge.exe "${PF_ROOT}\dist\PhoenixForge_v1.3.0_Portable.exe"
+ File /oname=PhoenixForge.exe "${PF_ROOT}\dist\PhoenixForge_v1.4.0_Portable.exe"
  File "${PF_ROOT}\LICENSE"
  File "${PF_ROOT}\THIRD_PARTY_NOTICES.md"
  SetOutPath "$INSTDIR\docs"
@@ -59,7 +59,7 @@ Section "PhœnixForge (obligatorio)" Main
  CreateShortCut "$SMPROGRAMS\PhoenixForge\PhœnixForge.lnk" "$INSTDIR\PhoenixForge.exe"
  CreateShortCut "$SMPROGRAMS\PhoenixForge\Desinstalar.lnk" "$INSTDIR\Uninstall.exe"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\PhoenixForge" "DisplayName" "PhœnixForge"
- WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\PhoenixForge" "DisplayVersion" "1.3.0"
+ WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\PhoenixForge" "DisplayVersion" "1.4.0"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\PhoenixForge" "DisplayIcon" "$INSTDIR\PhoenixForge.exe"
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\PhoenixForge" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\PhoenixForge" "NoModify" 1
