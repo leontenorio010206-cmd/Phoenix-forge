@@ -30,7 +30,7 @@ def main():
     parser.add_argument('--experimental-preview', action='store_true',
                         help='Build an explicitly unverified preview; do not run release acceptance')
     args = parser.parse_args()
-    report = {'version': '1.6.0', 'utc': datetime.now(timezone.utc).isoformat(),
+    report = {'version': '1.6.1', 'utc': datetime.now(timezone.utc).isoformat(),
               'host': platform.platform(), 'python': platform.python_version(),
               'success': False, 'artifacts': [], 'clean_vm_verified': False,
               'installer_installation_verified': False, 'release_acceptance_complete': False,
@@ -59,14 +59,14 @@ def main():
             if any(t.get('classname', '').endswith(('test_simulation', 'test_gui')) and t.find('skipped') is not None
                    for t in result.iter('testcase')):
                 raise RuntimeError('An HDL test was skipped; bundled simulator is mandatory')
-        portable = ROOT / 'dist/PhoenixForge_v1.6.0_Portable.exe'
+        portable = ROOT / 'dist/PhoenixForge_v1.6.1.1_Portable.exe'
         # Reuse a PE left by strict acceptance only for an explicitly UNVERIFIED preview.
         if not args.experimental_preview or not portable.is_file():
             invoke([sys.executable, '-m', 'PyInstaller', '--clean', '--noconfirm',
                     '--distpath', 'dist', '--workpath', 'build/work-modern', 'build/PhoenixForge.spec'], environment)
         artifact = inspect_pe(portable, minimum_size=20*1024*1024)
         if args.experimental_preview:
-            preview = ROOT / 'dist/PhoenixForge_v1.6.0_Portable_EXPERIMENTAL.exe'
+            preview = ROOT / 'dist/PhoenixForge_v1.6.1.1_Portable_EXPERIMENTAL.exe'
             shutil.copy2(portable, preview)
             portable.unlink(missing_ok=True)  # Never publish an unverified file under a stable name.
             report['artifacts'].append(inspect_pe(preview, minimum_size=20*1024*1024))
@@ -87,7 +87,7 @@ def main():
             if not nsis:
                 raise FileNotFoundError('Install NSIS 3.11 on the build machine, or specify --makensis')
             invoke([nsis, '/INPUTCHARSET', 'UTF8', '/DPF_ROOT=' + str(ROOT), ROOT / 'installer/PhoenixForge.nsi'])
-            report['artifacts'].append(inspect_pe(ROOT / 'dist/PhoenixForge_v1.6.0_Setup.exe',
+            report['artifacts'].append(inspect_pe(ROOT / 'dist/PhoenixForge_v1.6.1.1_Setup.exe',
                                                  minimum_size=20*1024*1024, machine=None))
         report['success'] = True
     except Exception as error:

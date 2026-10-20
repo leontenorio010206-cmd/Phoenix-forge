@@ -1,3 +1,10 @@
+## 1.6.1 — Arduino: catálogo y bibliotecas
+- Identificación USB de Arduino y adaptadores usados en clones con advertencia explícita: autenticidad no verificable.
+- Lista inicial de modelos y lectura dinámica de todos los FQBN disponibles en los cores Arduino instalados.
+- Ejemplos originales de Blink, Serial, GPIO, PWM, I2C/Wire, SPI, EEPROM y Servo incluidos sin código externo de terceros.
+- Instalador voluntario de paquete básico de bibliotecas del Arduino Library Manager; búsqueda, inventario y actualizaciones solicitadas.
+- Pruebas automatizadas; se mantiene la prohibición de instalar drivers o programar placas de forma silenciosa.
+
 ## 1.6.0 — Hardware Studio (primera integración)
 - Detección automática USB/COM Windows y dispositivos Pico BOOTSEL; sin instalación silenciosa de controladores.
 - Arduino CLI oficial v1.5.1 con verificación SHA-256, instalación opt-in de plataformas y bibliotecas.
