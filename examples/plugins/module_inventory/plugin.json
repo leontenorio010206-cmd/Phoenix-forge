@@ -1,0 +1,8 @@
+{
+  "id": "org.phoenixforge.module-inventory",
+  "name": "Inventario de módulos",
+  "version": "1.0.0",
+  "api_version": 1,
+  "entry_point": "plugin.py",
+  "description": "Ejemplo revisable del SDK: enumera módulos sin ejecutar el código importado."
+}

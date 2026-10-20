@@ -1,0 +1,10 @@
+{
+  "icarus": {
+    "version": "12.0",
+    "source_url": "https://codeload.github.com/steveicarus/iverilog/tar.gz/refs/tags/v12_0",
+    "source_sha256": "a68cb1ef7c017ef090ebedb2bc3e39ef90ecc70a3400afb4aa94303bc3beaa7d",
+    "source_file": "sources/iverilog-12.0.tar.gz",
+    "license": "GPL-2.0-or-later"
+  },
+  "binary_status": "requires_windows_build"
+}

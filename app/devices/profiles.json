@@ -1,0 +1,255 @@
+[
+  {
+    "id": "ep2c5t144c8n",
+    "name": "Altera Cyclone II EP2C5T144C8N",
+    "manufacturer": "Altera / Intel",
+    "family": "Cyclone II",
+    "scope": "device",
+    "resources": [
+      "EP2C5: 4,608 elementos lógicos (LE).",
+      "119,808 bits de RAM embebida en bloques M4K.",
+      "Recursos de multiplicación y PLL; consultar el encapsulado y grado exactos."
+    ],
+    "restrictions": [
+      "Dispositivo de referencia; el reloj de 50 MHz pertenece a la placa de la práctica.",
+      "No se asignan pines automáticamente: se requiere el esquema de la placa.",
+      "No interpretar los niveles TTL del PDF como tolerancia a 5 V de esta FPGA."
+    ],
+    "sources": [
+      "https://cdrdv2-public.intel.com/654376/cyc2_cii5v1.pdf"
+    ],
+    "compatibility": {
+      "informational": true,
+      "logical_simulation": true,
+      "synthesis_verified": false,
+      "programming_verified": false
+    },
+    "simulation_scope": "RTL Verilog portable; no emula el silicio, tiempos, consumo ni primitivas del fabricante",
+    "reviewed": "2026-10-09"
+  },
+  {
+    "id": "cyclone_iv",
+    "name": "Altera Cyclone IV",
+    "manufacturer": "Altera / Intel",
+    "family": "Cyclone IV",
+    "scope": "family",
+    "resources": [
+      "Elementos lógicos (LE), memoria M9K, multiplicadores y PLL; capacidad según chip."
+    ],
+    "restrictions": [
+      "Perfil general; seleccionar variante E/GX, chip, encapsulado y grado."
+    ],
+    "sources": [
+      "https://www.intel.com/content/www/us/en/content-details/653974/cyclone-iv-device-handbook.html"
+    ],
+    "compatibility": {
+      "informational": true,
+      "logical_simulation": true,
+      "synthesis_verified": false,
+      "programming_verified": false
+    },
+    "simulation_scope": "RTL Verilog portable; no emula el silicio, tiempos, consumo ni primitivas del fabricante",
+    "reviewed": "2026-10-09"
+  },
+  {
+    "id": "cyclone_v",
+    "name": "Intel Cyclone V",
+    "manufacturer": "Intel / Altera",
+    "family": "Cyclone V",
+    "scope": "family",
+    "resources": [
+      "ALM, memoria embebida y bloques DSP; algunas variantes incorporan transceptores o HPS."
+    ],
+    "restrictions": [
+      "Perfil general; no todas las variantes son SoC ni incluyen transceptores."
+    ],
+    "sources": [
+      "https://www.intel.com/content/www/us/en/products/details/fpga/cyclone/v.html"
+    ],
+    "compatibility": {
+      "informational": true,
+      "logical_simulation": true,
+      "synthesis_verified": false,
+      "programming_verified": false
+    },
+    "simulation_scope": "RTL Verilog portable; no emula el silicio, tiempos, consumo ni primitivas del fabricante",
+    "reviewed": "2026-10-09"
+  },
+  {
+    "id": "spartan6",
+    "name": "Xilinx Spartan-6",
+    "manufacturer": "Xilinx / AMD",
+    "family": "Spartan-6",
+    "scope": "family",
+    "resources": [
+      "Slices con LUT y registros, Block RAM, DSP48A1 y recursos de reloj."
+    ],
+    "restrictions": [
+      "Perfil general; seleccionar LX/LXT, encapsulado y grado.",
+      "La cadena de herramientas física no está integrada en v1.0."
+    ],
+    "sources": [
+      "https://docs.amd.com/v/u/en-US/ds160"
+    ],
+    "compatibility": {
+      "informational": true,
+      "logical_simulation": true,
+      "synthesis_verified": false,
+      "programming_verified": false
+    },
+    "simulation_scope": "RTL Verilog portable; no emula el silicio, tiempos, consumo ni primitivas del fabricante",
+    "reviewed": "2026-10-09"
+  },
+  {
+    "id": "spartan7",
+    "name": "Xilinx Spartan-7",
+    "manufacturer": "Xilinx / AMD",
+    "family": "Spartan-7",
+    "scope": "family",
+    "resources": [
+      "Slices, Block RAM, DSP48E1 y recursos de reloj de la serie 7."
+    ],
+    "restrictions": [
+      "Perfil general; requiere referencia XC7S concreta."
+    ],
+    "sources": [
+      "https://docs.amd.com/v/u/en-US/ds180_7Series_Overview"
+    ],
+    "compatibility": {
+      "informational": true,
+      "logical_simulation": true,
+      "synthesis_verified": false,
+      "programming_verified": false
+    },
+    "simulation_scope": "RTL Verilog portable; no emula el silicio, tiempos, consumo ni primitivas del fabricante",
+    "reviewed": "2026-10-09"
+  },
+  {
+    "id": "artix7",
+    "name": "Xilinx Artix-7",
+    "manufacturer": "Xilinx / AMD",
+    "family": "Artix-7",
+    "scope": "family",
+    "resources": [
+      "Slices, Block RAM, DSP48E1 y recursos de reloj; otros recursos según variante."
+    ],
+    "restrictions": [
+      "Perfil general; requiere referencia XC7A concreta."
+    ],
+    "sources": [
+      "https://docs.amd.com/v/u/en-US/ds180_7Series_Overview"
+    ],
+    "compatibility": {
+      "informational": true,
+      "logical_simulation": true,
+      "synthesis_verified": false,
+      "programming_verified": false
+    },
+    "simulation_scope": "RTL Verilog portable; no emula el silicio, tiempos, consumo ni primitivas del fabricante",
+    "reviewed": "2026-10-09"
+  },
+  {
+    "id": "ice40_hx1k",
+    "name": "Lattice iCE40 HX1K",
+    "manufacturer": "Lattice Semiconductor",
+    "family": "iCE40 LP/HX",
+    "scope": "device",
+    "resources": [
+      "1,280 celdas lógicas.",
+      "64 kbit de memoria EBR."
+    ],
+    "restrictions": [
+      "Chip identificado; encapsulado y grado pendientes.",
+      "Pines disponibles y PLL dependen del encapsulado; no se asignan cantidades de E/S."
+    ],
+    "sources": [
+      "https://www.latticesemi.com/iCE40",
+      "https://www.latticesemi.com/-/media/LatticeSemi/Documents/ProductBrochures/NZ/PSG_2020_I0211K_Rev28.ashx?document_id=9"
+    ],
+    "compatibility": {
+      "informational": true,
+      "logical_simulation": true,
+      "synthesis_verified": false,
+      "programming_verified": false
+    },
+    "simulation_scope": "RTL Verilog portable; no emula el silicio, tiempos, consumo ni primitivas del fabricante",
+    "reviewed": "2026-10-09"
+  },
+  {
+    "id": "ice40_up5k",
+    "name": "Lattice iCE40 UP5K",
+    "manufacturer": "Lattice Semiconductor",
+    "family": "iCE40 UltraPlus",
+    "scope": "device",
+    "resources": [
+      "5,280 celdas lógicas.",
+      "120 kbit EBR y 1 Mbit SPRAM.",
+      "8 bloques multiplicador de 16×16 con acumulación de 32 bits."
+    ],
+    "restrictions": [
+      "Chip identificado; encapsulado y grado pendientes.",
+      "No se modelan primitivas específicas de memoria o DSP en esta versión."
+    ],
+    "sources": [
+      "https://www.latticesemi.com/Products/FPGAandCPLD/iCE40UltraPlus",
+      "https://www.latticesemi.com/-/media/LatticeSemi/Documents/ProductBrochures/NZ/PSG_2020_I0211K_Rev28.ashx?document_id=9"
+    ],
+    "compatibility": {
+      "informational": true,
+      "logical_simulation": true,
+      "synthesis_verified": false,
+      "programming_verified": false
+    },
+    "simulation_scope": "RTL Verilog portable; no emula el silicio, tiempos, consumo ni primitivas del fabricante",
+    "reviewed": "2026-10-09"
+  },
+  {
+    "id": "ecp5",
+    "name": "Lattice ECP5",
+    "manufacturer": "Lattice Semiconductor",
+    "family": "ECP5",
+    "scope": "family",
+    "resources": [
+      "LUT, registros, memoria EBR, DSP y recursos de reloj; SERDES según subfamilia."
+    ],
+    "restrictions": [
+      "Perfil general; seleccionar LFE5U/UM/UM5G y densidad exacta."
+    ],
+    "sources": [
+      "https://www.latticesemi.com/Products/FPGAandCPLD/ECP5"
+    ],
+    "compatibility": {
+      "informational": true,
+      "logical_simulation": true,
+      "synthesis_verified": false,
+      "programming_verified": false
+    },
+    "simulation_scope": "RTL Verilog portable; no emula el silicio, tiempos, consumo ni primitivas del fabricante",
+    "reviewed": "2026-10-09"
+  },
+  {
+    "id": "gw1n",
+    "name": "Gowin GW1N",
+    "manufacturer": "GOWIN Semiconductor",
+    "family": "LittleBee GW1N",
+    "scope": "family",
+    "resources": [
+      "LUT4, registros, memoria BSRAM y recursos de reloj; capacidad según chip."
+    ],
+    "restrictions": [
+      "Perfil general; seleccionar GW1N concreto, revisión y encapsulado.",
+      "No confundir con GW1NR o GW1NS."
+    ],
+    "sources": [
+      "https://www.gowinsemi.com/en/product/littlebee_fpga/"
+    ],
+    "compatibility": {
+      "informational": true,
+      "logical_simulation": true,
+      "synthesis_verified": false,
+      "programming_verified": false
+    },
+    "simulation_scope": "RTL Verilog portable; no emula el silicio, tiempos, consumo ni primitivas del fabricante",
+    "reviewed": "2026-10-09"
+  }
+]
