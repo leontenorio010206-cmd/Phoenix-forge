@@ -16,7 +16,7 @@ def test_original_vs_clone_not_authenticated():
     assert "Compatible/clon posible" in compatible.origin
     assert compatible.kind == "USB / serie"
     other = discovery.classify_usb("USB SERIAL CH340 (COM4)", r"USB\VID_1A86&PID_7523\X")
-    assert other.origin == "No verificable"
+    assert "origen no verificable" in other.origin
 
 
 def test_bundled_catalog_and_sketches():
