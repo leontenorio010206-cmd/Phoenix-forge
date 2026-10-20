@@ -27,8 +27,8 @@ def guarded(method):
 
 class ProjectActions:
     def can_replace(self):
-        if self.worker is not None:
-            W.QMessageBox.information(self, "Simulación activa", "Detenga la simulación antes de cambiar de proyecto.")
+        if self.worker is not None or (hasattr(self, 'devices') and self.devices.bench.worker is not None):
+            W.QMessageBox.information(self, "Simulación activa", "Espere a que termine la simulación antes de cambiar de proyecto.")
             return False
         return self.confirm_discard()
 
