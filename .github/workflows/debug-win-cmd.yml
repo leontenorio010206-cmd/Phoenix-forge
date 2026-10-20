@@ -1,0 +1,36 @@
+name: Debug Windows CMD quote handling
+on:
+  push:
+    branches: [feature/verified-online-setup]
+    paths: [.github/workflows/debug-win-cmd.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  quote:
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - name: Test path quoting via cmd C runtime compatible syntax
+        shell: pwsh
+        run: |
+          $source = 'C:\Windows\System32\whoami.exe'
+          $dir = Join-Path $env:RUNNER_TEMP 'Icarus Demo With Spaces'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Copy-Item $source (Join-Path $dir 'ivlpp.exe')
+          Copy-Item $source (Join-Path $dir 'ivl.exe')
+          $a = Join-Path $dir 'ivlpp.exe'
+          $b = Join-Path $dir 'ivl.exe'
+          $samples = @(
+            ('"{0}" /UPN | "{1}" /UPN' -f $a,$b),
+            ('call "{0}" /UPN | call "{1}" /UPN' -f $a,$b),
+            ('cmd /d /s /c ""{0}" /UPN | "{1}" /UPN"' -f $a,$b),
+            ('"{0}" /UPN' -f $a),
+            ('call "{0}" /UPN' -f $a),
+            ('ver > NUL && "{0}" /UPN | "{1}" /UPN' -f $a,$b)
+          )
+          foreach ($sample in $samples) {
+            Write-Host "Testing: $sample"
+            $proc = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/D','/S','/C', $sample) -NoNewWindow -Wait -PassThru
+            Write-Host "Return code: $($proc.ExitCode)"
+          }
