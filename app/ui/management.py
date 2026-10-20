@@ -11,6 +11,8 @@ from app.utils.paths import data_dir, bundled_icarus
 class DevicePanel(W.QWidget):
     device_selected = Signal(str)
     pins_changed = Signal(dict)
+    demo_requested = Signal(str)
+    simulate_requested = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -32,6 +34,12 @@ class DevicePanel(W.QWidget):
         split.setSizes([320, 650])
         layout.addWidget(split, 3)
         layout.addWidget(button("Usar perfil seleccionado en el proyecto", self.select, True))
+        actions = W.QHBoxLayout()
+        actions.addWidget(button("Crear demo RTL para esta FPGA", self.demo))
+        actions.addWidget(button("Simular proyecto con este perfil", self.simulate))
+        layout.addLayout(actions)
+        layout.addWidget(label("Los diez perfiles usan simulación funcional RTL con Icarus. "
+                               "Esto no emula el silicio ni verifica tiempos, recursos o programación física.", "Muted", True))
         layout.addWidget(label("Asignaciones de pines · metadatos del proyecto; sin validación eléctrica", "Muted"))
         self.pins = W.QTableWidget(0, 2)
         self.pins.setHorizontalHeaderLabels(["Puerto HDL", "Pin físico (texto)"])
@@ -62,6 +70,14 @@ class DevicePanel(W.QWidget):
     def select(self):
         if self.list.currentItem():
             self.device_selected.emit(self.list.currentItem().data(Qt.UserRole))
+
+    def demo(self):
+        if self.list.currentItem():
+            self.demo_requested.emit(self.list.currentItem().data(Qt.UserRole))
+
+    def simulate(self):
+        if self.list.currentItem():
+            self.simulate_requested.emit(self.list.currentItem().data(Qt.UserRole))
 
     def bind(self, project):
         for i in range(self.list.count()):
