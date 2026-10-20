@@ -140,6 +140,15 @@ def copy_uf2(firmware, mount):
     destination = Path(mount)
     if image.suffix.lower() != ".uf2" or not image.is_file() or image.stat().st_size > 32*1024*1024:
         raise ValueError("Seleccione un firmware .uf2 válido de máximo 32 MiB")
+    # UF2 blocks must have the standard magic values at header and footer.
+    if image.stat().st_size < 512 or image.stat().st_size % 512:
+        raise ValueError("El UF2 debe contener bloques completos de 512 bytes")
+    import struct
+    with image.open("rb") as stream:
+        block = stream.read(512)
+    if (struct.unpack_from("<II", block) != (0x0A324655, 0x9E5D5157)
+            or struct.unpack_from("<I", block, 508)[0] != 0x0AB16F30):
+        raise ValueError("El archivo no tiene la cabecera UF2 válida")
     if not destination.is_dir() or not (destination / "INFO_UF2.TXT").is_file():
         raise ValueError("No se detectó un volumen BOOTSEL compatible con Pico")
     target = destination / image.name
