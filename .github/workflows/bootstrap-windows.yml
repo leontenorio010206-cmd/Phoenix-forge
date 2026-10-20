@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'PhoenixForge_GitHub.git.bundle'
+      - '.github/workflows/bootstrap-windows.yml'
 permissions:
   contents: write
 jobs:
@@ -29,15 +30,16 @@ jobs:
           if ($LASTEXITCODE -gt 7) { throw 'Fallo al copiar el proyecto del bundle' }
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
+          # Do not commit bundled workflow files using GITHUB_TOKEN:
+          # GitHub rejects these without workflow permission.
+          # The bootstrap workflow itself remains in the repository.
+          git add -A -- . ':(exclude).github/workflows/**'
           git diff --cached --quiet
           if ($LASTEXITCODE -ne 0) {
             git commit -m 'Import PhœnixForge v1.1.0 full project'
             if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear commit de importacion' }
             git push origin HEAD:main
-            if ($LASTEXITCODE -ne 0) {
-              Write-Warning 'No se pudo publicar los fuentes en main; el job intentara compilarlos igualmente.'
-            }
+            if ($LASTEXITCODE -ne 0) { throw 'Falló la publicación del código fuente en main' }
           }
       - name: Instalar Python 3.11 x64
         uses: actions/setup-python@v5
