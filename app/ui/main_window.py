@@ -89,7 +89,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.setCentralWidget(container)
         self.connect_actions()
         self.make_menus()
-        self.replace_project(clock_project(), dirty=False)
+        self.replace_project(Project(name="Proyecto nuevo", files={"main.v": "module main(input a, output y);\n  assign y = a;\nendmodule\n"}, simulation={"top": "main", "testbench": "", "timeout": 15}), dirty=False)
         self.navigate(0)
         self.update_tool_status()
 
