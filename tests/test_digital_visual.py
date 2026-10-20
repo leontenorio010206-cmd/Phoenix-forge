@@ -19,7 +19,6 @@ def test_dynamic_symbol_svg_has_real_ports():
         assert name.encode("utf-8") in package["symbol.svg"]
     assert b"SWITCH / BUS" in package["connections.svg"]
     assert b"LED / BUS" in package["connections.svg"]
-    assert b"NO" not in package["component.v"][:0]   # do not change HDL
     assert b"module full_adder" in package["component.v"]
     assert "timing" in json.loads(package["ports.json"])["scope"]
 
