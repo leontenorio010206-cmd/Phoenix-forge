@@ -64,6 +64,15 @@ def test_virtual_fpga_clocked_counter(tmp_path):
     assert outputs_from_result(result, pins)["leds"] == "0000"
 
 
+
+def test_windows_crlf_probe_output_parser():
+    from app.simulators.icarus import SimulationResult
+    result = SimulationResult(True, "", output="PF_OUT:sum=0\r\nPF_OUT:cout=1\r\n")
+    _, pins = select_ports(adder_project())
+    assert outputs_from_result(result, pins) == {"sum": "0", "cout": "1"}
+
+
+
 def test_export_digital_component_real_hdl(tmp_path):
     project = adder_project()
     files = digital_component_files(project)
