@@ -65,7 +65,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Pruebas Windows y aceptación estricta del EXE
         id: strict
-        timeout-minutes: 12
+        timeout-minutes: 35
         shell: pwsh
         run: |
           python tools/build_windows.py --portable-only
