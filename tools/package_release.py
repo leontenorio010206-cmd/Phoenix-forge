@@ -38,7 +38,7 @@ def selected(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output', default=str(ROOT.parent / 'PhoenixForge_v1.1.0_Source.zip'))
+    parser.add_argument('--output', default=str(ROOT.parent / 'PhoenixForge_v1.2.0_Source.zip'))
     parser.add_argument('--overwrite', action='store_true')
     args = parser.parse_args()
     target = Path(args.output).resolve()

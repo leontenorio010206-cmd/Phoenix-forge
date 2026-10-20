@@ -1,3 +1,9 @@
+## 1.2.0 — Perfiles RTL y proyectos de muestra (en desarrollo)
+- Semáforo y divisores disponibles como proyectos de muestra en lugar de pantalla fija.
+- Demos autoverificables de contador RTL para los 10 perfiles FPGA.
+- Botones de simulación RTL por perfil; no modela tiempos, silicio ni programación física.
+- Pruebas de regresión para los diez perfiles; compatibilidad Windows pendiente de comprobar en el nuevo paquete.
+
 # Historial
 
 ## 1.1.0 — 2026-10-12 · candidato, distribución Windows pendiente
