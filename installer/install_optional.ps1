@@ -10,7 +10,7 @@ $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
 function Assert-TrustedZip($File, $Spec) {
-  Add-Type -AssemblyName System.IO.Compression
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
   $archive = [System.IO.Compression.ZipFile]::OpenRead($File)
   try {
     if ($archive.Entries.Count -gt [int]$Spec.max_entries) { throw "Demasiados archivos en el ZIP" }
