@@ -53,6 +53,7 @@ class ProjectActions:
         self.project, self.project_path, self.dirty = project, Path(path) if path else None, dirty
         self.studio.bind_project(project)
         self.devices.bind(project)
+        self.digital_export.bind_project(project)
         self.update_title()
         self.navigate(1)
 
@@ -162,8 +163,8 @@ class ProjectActions:
             self.statusBar().showMessage("Exportados fuentes, testbench, resultados, manifiesto, puertos y .pforge", 9000)
 
     @guarded
-    def export_digital(self):
-        top = self.project.simulation.get("top", "")
+    def export_digital(self, top=None):
+        top = top if isinstance(top, str) and top else self.project.simulation.get("top", "")
         if not top:
             raise ValueError("Seleccione primero el módulo HDL principal en Estudio HDL")
         suggested = "PhoenixForge_" + "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in top) + "_Digital.zip"
@@ -175,7 +176,8 @@ class ProjectActions:
             path += ".zip"
         if not self.confirm_overwrite(path):
             return False
-        export_digital_component(self.project, path, overwrite=True)
+        export_digital_component(self.project, path, top=top, overwrite=True)
+        self.digital_export.set_last_export(path)
         self.project.export_state["last_digital"] = {
             "module": top, "filename": Path(path).name,
             "utc": datetime.now(timezone.utc).isoformat(),
@@ -185,8 +187,9 @@ class ProjectActions:
         W.QMessageBox.information(self, "Componente para Digital",
             "Paquete exportado:\n" + path +
             "\n\nEn Digital: añade External File → Verilog, selecciona component.v, "
-            "configura Icarus y comprueba los puertos. La guía va dentro del ZIP. "
-            "No es un JAR ni un plugin para Tinkercad.")
+            "configura Icarus y comprueba los puertos. El ZIP incluye "
+            "symbol.svg y connections.svg, además de la guía de importación. "
+            "Las vistas SVG no son un componente .dig ni un plugin de Tinkercad.")
         return True
 
     @guarded
