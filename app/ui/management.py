@@ -4,6 +4,7 @@ from pathlib import Path
 from app.ui.qt import QtCore as C, QtWidgets as W, Qt, Signal
 from app.ui.common import label, button
 from app.devices.catalog import load_profiles
+from app.ui.virtual_bench import VirtualFPGABench
 from app.plugins.manager import PluginManager
 from app.utils.paths import data_dir, bundled_icarus
 
@@ -14,11 +15,16 @@ class DevicePanel(W.QWidget):
     demo_requested = Signal(str)
     simulate_requested = Signal(str)
 
-    def __init__(self):
+    def __init__(self, project_provider, settings_provider):
         super().__init__()
         self.profiles = load_profiles()
-        layout = W.QVBoxLayout(self)
-        layout.setContentsMargins(26, 22, 26, 22)
+        outer = W.QVBoxLayout(self)
+        outer.setContentsMargins(10, 10, 10, 10)
+        self.tabs = W.QTabWidget()
+        outer.addWidget(self.tabs)
+        catalog = W.QWidget()
+        layout = W.QVBoxLayout(catalog)
+        layout.setContentsMargins(18, 14, 18, 14)
         layout.addWidget(label("Administrador de FPGA", "Heading"))
         layout.addWidget(label("10 perfiles · la simulación RTL es independiente del dispositivo físico.", "Muted", True))
         split = W.QSplitter(Qt.Horizontal)
@@ -51,6 +57,9 @@ class DevicePanel(W.QWidget):
         row.addWidget(button("Aplicar pines", self.apply_pins))
         layout.addLayout(row)
         self.list.setCurrentRow(0)
+        self.bench = VirtualFPGABench(project_provider, settings_provider)
+        self.tabs.addTab(catalog, "Catálogo FPGA")
+        self.tabs.addTab(self.bench, "FPGA virtual · E/S")
 
     def show_profile(self, index):
         item = self.list.item(index)
@@ -83,6 +92,7 @@ class DevicePanel(W.QWidget):
         for i in range(self.list.count()):
             if self.list.item(i).data(Qt.UserRole) == project.device:
                 self.list.setCurrentRow(i)
+        self.bench.bind_project(project)
         self.pins.setRowCount(len(project.pins))
         for row, (name, pin) in enumerate(project.pins.items()):
             self.pins.setItem(row, 0, W.QTableWidgetItem(name))

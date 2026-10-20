@@ -35,7 +35,7 @@ for name, source, kind in a.binaries:
         raise RuntimeError('Qt module has no reviewed source in this build: ' + base)
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, a.binaries, a.datas, [],
-          name='PhoenixForge_v1.2.0_Portable', debug=False, bootloader_ignore_signals=False,
+          name='PhoenixForge_v1.3.0_Portable', debug=False, bootloader_ignore_signals=False,
           strip=False, upx=False, console=False, disable_windowed_traceback=False,
           icon=str(root / 'app/assets/PhoenixForge.ico'),
           version=str(root / 'build/windows_version.txt'),

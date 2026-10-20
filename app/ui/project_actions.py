@@ -8,6 +8,7 @@ from app.ui.qt import QtWidgets as W
 from app.core.project import Project
 from app.core.examples import adder_project, clock_project
 from app.exporters.bundle import export_bundle
+from app.exporters.digital_hdl import export_digital_component
 from app.utils.paths import safe_relative, user_projects_dir
 
 
@@ -26,8 +27,8 @@ def guarded(method):
 
 class ProjectActions:
     def can_replace(self):
-        if self.worker is not None:
-            W.QMessageBox.information(self, "Simulación activa", "Detenga la simulación antes de cambiar de proyecto.")
+        if self.worker is not None or (hasattr(self, 'devices') and self.devices.bench.worker is not None):
+            W.QMessageBox.information(self, "Simulación activa", "Espere a que termine la simulación antes de cambiar de proyecto.")
             return False
         return self.confirm_discard()
 
@@ -159,6 +160,34 @@ class ProjectActions:
             self.project.export_state["last_bundle"] = {"name": name, "utc": datetime.now(timezone.utc).isoformat()}
             self.mark_dirty()
             self.statusBar().showMessage("Exportados fuentes, testbench, resultados, manifiesto, puertos y .pforge", 9000)
+
+    @guarded
+    def export_digital(self):
+        top = self.project.simulation.get("top", "")
+        if not top:
+            raise ValueError("Seleccione primero el módulo HDL principal en Estudio HDL")
+        suggested = "PhoenixForge_" + "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in top) + "_Digital.zip"
+        path, _ = W.QFileDialog.getSaveFileName(
+            self, "Exportar componente Verilog para Digital", suggested, "Paquete Digital HDL (*.zip)")
+        if not path:
+            return False
+        if not path.lower().endswith(".zip"):
+            path += ".zip"
+        if not self.confirm_overwrite(path):
+            return False
+        export_digital_component(self.project, path, overwrite=True)
+        self.project.export_state["last_digital"] = {
+            "module": top, "filename": Path(path).name,
+            "utc": datetime.now(timezone.utc).isoformat(),
+            "format": "External File Verilog"
+        }
+        self.mark_dirty()
+        W.QMessageBox.information(self, "Componente para Digital",
+            "Paquete exportado:\n" + path +
+            "\n\nEn Digital: añade External File → Verilog, selecciona component.v, "
+            "configura Icarus y comprueba los puertos. La guía va dentro del ZIP. "
+            "No es un JAR ni un plugin para Tinkercad.")
+        return True
 
     @guarded
     def open_vcd(self):

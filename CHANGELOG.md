@@ -1,3 +1,10 @@
+## 1.3.0 — FPGA virtual y exportación para Digital
+- Banco interactivo de señales HDL con testbench generado, reloj manual, entradas de 1 a 16 bits y trazas VCD.
+- Integración del motor Icarus con los diez perfiles FPGA a nivel RTL funcional.
+- Paquete de componentes Verilog para Digital External File, con puertos, fuentes fusionadas y guía de importación.
+- Pruebas reales de ejecución de sumador, contador y controles de GUI.
+- No incluye emulación física, bitstreams/JTAG, Tinkercad plugin ni extensión Java JAR.
+
 ## 1.2.0 — Perfiles RTL y proyectos de muestra (en desarrollo)
 - Semáforo y divisores disponibles como proyectos de muestra en lugar de pantalla fija.
 - Demos autoverificables de contador RTL para los 10 perfiles FPGA.
