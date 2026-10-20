@@ -80,7 +80,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.studio = Studio()
         self.examples = ExamplesPanel()
         self.clock = self.examples.clock  # Interactive sample, no longer a top-level page.
-        self.devices = DevicePanel()
+        self.devices = DevicePanel(lambda: self.project, lambda: self.settings.values)
         self.plugins = PluginPanel(lambda: copy.deepcopy(self.project))
         self.settings = SettingsPanel()
         for widget in (self.home, self.studio, self.devices, self.examples, self.plugins, self.settings):
@@ -142,6 +142,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.devices.simulate_requested.connect(self.simulate_selected_device)
         self.devices.device_selected.connect(self.choose_device)
         self.devices.pins_changed.connect(self.change_pins)
+        self.devices.bench.trace_ready.connect(self.virtual_trace)
         self.settings.saved.connect(lambda _: self.update_tool_status())
 
     def make_menus(self):
@@ -155,7 +156,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         for title, fn, key in (("Nuevo proyecto…", self.new_project, "Ctrl+N"), ("Abrir proyecto…", self.open_project, "Ctrl+O"),
                                ("Guardar proyecto", self.save_project, "Ctrl+S"), ("Guardar proyecto como…", lambda: self.save_project(True), "Ctrl+Shift+S"),
                                ("Importar archivos…", self.import_sources, "Ctrl+I"), ("Guardar archivo fuente como…", self.export_active_source, "Ctrl+Alt+S"),
-                               ("Exportar paquete completo…", self.export_project, None), ("Exportar VCD…", self.export_vcd, None),
+                               ("Exportar paquete completo…", self.export_project, None), ("Exportar componente para Digital…", self.export_digital, None), ("Exportar VCD…", self.export_vcd, None),
                                ("Verificar integridad", self.verify_project, None), ("Salir", self.close, "Alt+F4")):
             action(file, title, fn, key)
         edit = self.menuBar().addMenu("Editar")
@@ -223,6 +224,13 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.mark_dirty()
         self.statusBar().showMessage("Perfil seleccionado: " + self.devices.profiles[device]["name"], 6000)
 
+    def virtual_trace(self, data):
+        self.project.artifacts["virtual/latest/virtual_fpga.vcd"] = data
+        self.mark_dirty()
+        self.studio.refresh_tree()
+        self.studio.wave.load(data, "FPGA virtual")
+        self.statusBar().showMessage("Simulación FPGA virtual: VCD disponible en Estudio HDL", 9000)
+
     def change_pins(self, pins):
         self.project.pins = pins
         self.mark_dirty()
@@ -231,7 +239,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
     def update_tool_status(self):
         values = self.settings.values
         engine = IcarusEngine(values.get("iverilog", ""), values.get("vvp", ""))
-        text = ("Icarus integrado · simulación lista, sin configuración" if engine.bundle else "Icarus detectado · listo para compilar HDL") if engine.available else "Motor HDL no disponible · revisa Configuración. Los modelos internos permanecen disponibles."
+        text = ("Icarus integrado · simulación RTL y FPGA virtual listas" if engine.bundle else "Icarus detectado · listo para compilar HDL") if engine.available else "Motor HDL no disponible · revisa Configuración. Los modelos internos permanecen disponibles."
         self.engine_status.setText(text)
         self.statusBar().showMessage(text)
 
