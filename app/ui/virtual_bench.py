@@ -144,7 +144,7 @@ class VirtualFPGABench(W.QWidget):
             signals = {name: int(w.isChecked()) if isinstance(w, W.QCheckBox) else w.value()
                        for name, w in self.inputs.items()}
             clock = self.clock.currentData() or None
-            simulated = make_probe_project(project, signals, clock=clock, cycles=self.cycles.value(), top=top)
+            simulated = make_probe_project(project, signals, clock=clock, cycles=self.cycles.value() if clock else 0, top=top)
             engine = IcarusEngine(settings.get("iverilog", ""), settings.get("vvp", ""))
             if not engine.available:
                 raise RuntimeError("Icarus no disponible. Vacíe las rutas manuales para usar el motor integrado.")
