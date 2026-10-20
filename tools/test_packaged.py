@@ -80,6 +80,7 @@ def verify(executable, output):
     output.mkdir(parents=True, exist_ok=True)
     stage = 'environment'
     report = {'artifact': artifact, 'passed': False, 'stage': stage}
+    copied = None
     try:
         environment = os.environ.copy()
         system = Path(environment.get('SystemRoot', r'C:\Windows'))
@@ -149,6 +150,8 @@ def verify(executable, output):
         report['traceback'] = traceback.format_exc()
         raise
     finally:
+        if copied is not None and copied.exists():
+            copied.unlink()
         (output/'packaged-status.json').write_text(
             json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
 
