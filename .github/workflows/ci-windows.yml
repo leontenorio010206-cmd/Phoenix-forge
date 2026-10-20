@@ -118,6 +118,7 @@ jobs:
             build/*.txt
             build/*.xml
             build/packaged-acceptance/**/*
+            !build/packaged-acceptance/**/*.exe
             build/work-modern/PhoenixForge/warn-*.txt
           if-no-files-found: warn
           retention-days: 30
