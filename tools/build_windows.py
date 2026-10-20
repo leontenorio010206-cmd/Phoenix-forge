@@ -28,7 +28,7 @@ def main():
     parser.add_argument('--makensis', help='NSIS 3.11 makensis.exe path; auto-detected if omitted')
     parser.add_argument('--portable-only', action='store_true')
     args = parser.parse_args()
-    report = {'version': '1.6.2', 'utc': datetime.now(timezone.utc).isoformat(),
+    report = {'version': '1.7.0', 'utc': datetime.now(timezone.utc).isoformat(),
               'host': platform.platform(), 'python': platform.python_version(),
               'success': False, 'artifacts': [], 'clean_vm_verified': False,
               'installer_installation_verified': False, 'release_acceptance_complete': False,
@@ -55,7 +55,7 @@ def main():
                            for k in ('tests', 'failures', 'errors', 'skipped')}
         if any(report['tests'][key] for key in ('failures', 'errors', 'skipped')):
             raise RuntimeError('CI Windows exige cero pruebas fallidas, erróneas u omitidas')
-        portable = ROOT / 'dist/PhoenixForge_v1.6.2_Portable.exe'
+        portable = ROOT / 'dist/PhoenixForge_v1.7.0_Portable.exe'
         invoke([sys.executable, '-m', 'PyInstaller', '--clean', '--noconfirm',
                 '--distpath', 'dist', '--workpath', 'build/work-modern',
                 'build/PhoenixForge.spec'], environment)
@@ -74,7 +74,7 @@ def main():
             if not nsis:
                 raise FileNotFoundError('Install NSIS 3.11 on the build machine, or specify --makensis')
             invoke([nsis, '/INPUTCHARSET', 'UTF8', '/DPF_ROOT=' + str(ROOT), ROOT / 'installer/PhoenixForge.nsi'])
-            report['artifacts'].append(inspect_pe(ROOT / 'dist/PhoenixForge_v1.6.2_Setup.exe',
+            report['artifacts'].append(inspect_pe(ROOT / 'dist/PhoenixForge_v1.7.0_Setup.exe',
                                                  minimum_size=20*1024*1024, machine=None))
         report['success'] = True
     except Exception as error:

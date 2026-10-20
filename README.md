@@ -8,7 +8,7 @@
 
 **IDE de escritorio para diseño lógico, HDL y simulación de circuitos FPGA**
 
-![Version](https://img.shields.io/badge/version-1.1.0-f97316?style=flat-square) ![Windows](https://img.shields.io/badge/Windows-10_x64-0b71c1?style=flat-square) ![License](https://img.shields.io/badge/c%C3%B3digo-MIT-4ade80?style=flat-square)
+![Version](https://img.shields.io/badge/version-1.7.0-f97316?style=flat-square) ![Windows](https://img.shields.io/badge/Windows-10_x64-0b71c1?style=flat-square) ![License](https://img.shields.io/badge/c%C3%B3digo-MIT-4ade80?style=flat-square)
 
 </div>
 
@@ -16,11 +16,11 @@
 
 ## ¿Qué es PhœnixForge?
 
-Un taller digital para crear, estudiar, simular y documentar circuitos lógicos con Verilog. La aplicación está desarrollada con **Python + Qt**, conserva proyectos en formato `.pforge` e integra un motor de simulación HDL basado en **Icarus Verilog**.
+Un taller digital para crear, estudiar, simular y documentar circuitos lógicos con Verilog. La versión 1.7 busca mejorar la estabilidad en Windows 10/11 x64; no puede garantizar cero fallos en todos los equipos. La aplicación está desarrollada con **Python + Qt**, conserva proyectos en formato `.pforge` e integra un motor de simulación HDL basado en **Icarus Verilog**.
 
 El objetivo a largo plazo es facilitar el diseño sobre diferentes modelos de FPGA y la exportación de componentes a simuladores externos, sin confundir **simulación lógica** con **programación física** de chips.
 
-## Funciones de la v1.1
+## Funciones de PhœnixForge
 
 | Herramienta | Estado |
 | --- | --- |
@@ -38,12 +38,12 @@ El objetivo a largo plazo es facilitar el diseño sobre diferentes modelos de FP
 
 ## Construcción automática en Windows
 
-El flujo [Windows Build](.github/workflows/windows-release.yml) prepara Windows, Python, PySide6, PyInstaller, Icarus y los componentes necesarios. Es exclusivo de repositorios **privados**.
+El flujo [Windows Build](.github/workflows/ci-windows.yml) prepara Windows, Python, PySide6, PyInstaller, Icarus y los componentes necesarios. Es exclusivo de repositorios **privados**.
 
 1. Abre la pestaña **Actions** en GitHub.
-2. Selecciona **Private Windows distribution** y elige **Run workflow** (o haz un push a `main`).
+2. Selecciona **Windows 10 x64 v1.7** y elige **Run workflow** (o haz un push a `main`).
 3. Al finalizar, abre la ejecución y revisa **Artifacts**.
-4. Descarga `PhoenixForge-v1.1.0-windows-x64` si la validación tuvo éxito. En caso contrario, descarga diagnósticos y, si se generó, el paquete **EXPERIMENTAL**.
+4. Descarga `PhoenixForge-Windows-v1.7-VALIDADO-CI` **solo cuando las pruebas nativas pasen**. Si falla la aceptación no se publica EXE; solo diagnósticos y fuentes.
 
 Los ejecutables no están firmados digitalmente. No se garantiza funcionamiento hasta superar las pruebas de Windows en el flujo y, posteriormente, las de una PC Windows 10 limpia. Los artefactos tienen retención limitada; guárdalos después de descargarlos.
 
@@ -89,3 +89,11 @@ Código propio y marca del proyecto: **MIT** (ver [LICENSE](LICENSE)). El uso y 
 ## Próxima actualización: proyectos de muestra y perfiles RTL
 
 La rama de desarrollo `feature/fpga-rtl-examples` organiza el semáforo/divisores y el sumador bajo **Proyectos de muestra**. Desde **Dispositivos FPGA** permite crear y simular un contador RTL autoverificable en cualquiera de los diez perfiles. Consulta [alcance y límites](docs/RTL_PROFILES.md). La simulación RTL no implica emulación física ni programación de cada chip.
+
+## Estado de calidad v1.7
+
+- **CI Windows obligatorio**: pruebas de código + dos autopruebas del EXE sin Python ni Icarus en PATH + arranque gráfico + reporte de checksum.
+- El ejecutable no se publica como validado si falla una etapa. **Validado en CI no es certificado en una PC limpia**; faltan pruebas en laptops reales, incluyendo poca RAM y discos mecánicos.
+- Se incluyen diagnósticos y mediciones de tamaño para comparar versiones sin eliminar Icarus, Qt ni fuentes/licencias correspondientes.
+- Windows 7, Windows x86 de 32 bits y chips o cables FPGA no validados permanecen fuera de la compatibilidad garantizada.
+- Consulta [Estado de la versión 1.7](docs/STABILITY_170.md).
