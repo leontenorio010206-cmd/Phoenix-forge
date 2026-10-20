@@ -27,7 +27,8 @@ def run(output, offscreen=False, require_bundled=False):
     app.setStyle('Fusion')
     report = dict(version=__version__, platform=platform.platform(), python=platform.python_version(),
                   qt_binding=BINDING, qt_version=C.qVersion(), frozen=bool(getattr(sys,'frozen',False)),
-                  qpa=app.platformName(), success=False, checks={}, native_windows=False)
+                  qpa=app.platformName(), success=False, checks={}, native_windows=False,
+                  stage='initialization', stages_completed=[])
     window = None
     original_question, original_save = W.QMessageBox.question, W.QFileDialog.getSaveFileName
     W.QMessageBox.question = lambda *a, **k: W.QMessageBox.Yes
@@ -36,6 +37,11 @@ def run(output, offscreen=False, require_bundled=False):
     timer = C.QTimer(); timer.setInterval(1)
     beats = []
     timer.timeout.connect(lambda: beats.append(1))
+    def checkpoint(name):
+        report['checks'][name] = True
+        report['stages_completed'].append(name)
+        report['stage'] = name
+
     try:
         wine = False
         if sys.platform == 'win32':
@@ -53,7 +59,7 @@ def run(output, offscreen=False, require_bundled=False):
         assert not G.QIcon(str(assets_dir() / 'phoenix.svg')).isNull()
         assert (resource_root() / 'docs/USER_MANUAL.md').is_file()
         assert (resource_root() / 'examples/semaforo/semaforo.pforge').is_file()
-        report['checks']['resources'] = True
+        checkpoint('resources')
         if getattr(sys,'frozen',False):
             assert resource_root() not in data_dir().parents
         window = MainWindow(); window.show(); app.processEvents()
@@ -65,7 +71,7 @@ def run(output, offscreen=False, require_bundled=False):
             visible.argtypes = [wintypes.HWND]
             visible.restype = wintypes.BOOL
             assert visible(int(window.winId()))
-        report['checks']['window_visible'] = True
+        checkpoint('window_visible')
         window.new_clock()
         editor = window.studio.open_source('traffic_light.v')
         editor.moveCursor(G.QTextCursor.End)
@@ -73,12 +79,12 @@ def run(output, offscreen=False, require_bundled=False):
         assert window.dirty and editor.search('acceptance edit')
         editor.undo(); editor.redo()
         assert 'acceptance edit' in window.project.files['traffic_light.v']
-        report['checks']['editor'] = True
+        checkpoint('editor')
         window.clock.step(5 * 50000000)
         assert window.clock.model.state == 'VERDE'
         window.clock.reset()
         assert window.clock.model.state == 'ROJO'
-        report['checks']['traffic_light'] = True
+        checkpoint('traffic_light')
         timer.start()
         window.studio.run_button.click()
         deadline = time.monotonic() + 60
@@ -91,34 +97,42 @@ def run(output, offscreen=False, require_bundled=False):
         assert window.studio.wave.canvas.trace.signals
         assert beats, 'GUI heartbeat absent'
         report['heartbeat_events'] = len(beats)
-        report['checks']['hdl_and_vcd'] = True
+        checkpoint('hdl_and_vcd')
         (output / 'simulation.log').write_text(window.last_result.output, encoding='utf-8')
         assert window.save_project()
         loaded = Project.open(project_path)
         assert loaded.files == window.project.files
         assert any(n.endswith('.vcd') for n in loaded.artifacts)
-        report['checks']['project_roundtrip'] = True
+        checkpoint('project_roundtrip')
         manager = PluginManager()
         infos = manager.discover(resource_root() / 'examples/plugins')
         assert len(infos) == 1 and infos[0].compatible
         manager.load(infos[0], trusted=True)
         assert len(next(iter(manager.registry.values()))(adder_project())) == 2
         manager.unload(infos[0].manifest['id'])
-        report['checks']['plugin'] = True
-        for index,name in ((0,'welcome'),(1,'studio'),(2,'devices'),(3,'clock'),(4,'plugins')):
+        checkpoint('plugin')
+        # These indices reflect the CURRENT sidebar. Avoid screenshotting obsolete pages.
+        for index,name in ((0,'welcome'),(1,'studio'),(2,'devices'),(3,'examples'),
+                           (4,'digital'),(5,'hardware'),(6,'plugins'),(7,'settings')):
             window.navigate(index)
             if index == 1: window.studio.output_tabs.setCurrentWidget(window.studio.wave)
             app.processEvents()
-            assert window.grab().save(str(output / (name+'.png')))
+            assert window.grab().save(str(output / (name+'.png'))), name
+        checkpoint('all_navigation')
+        assert window.hardware.tabs.count() >= 4, 'Hardware Studio missing Arduino/Pico/FPGA tabs'
+        assert window.digital_export is not None
+        checkpoint('hardware_and_digital_ui')
         window.dirty=False; window.close(); app.processEvents()
         window = MainWindow()
         window.replace_project(Project.open(project_path),project_path,False)
         window.show(); app.processEvents()
         assert window.isVisible() and window.project.files == loaded.files
-        report['checks']['close_and_reopen_window'] = True
+        checkpoint('close_and_reopen_window')
+        checkpoint('reopened_window')
         report['success'] = True
     except Exception as error:
         report['error'] = str(error)
+        report['failed_stage'] = report['stage']
         report['traceback'] = traceback.format_exc()
     finally:
         timer.stop()
