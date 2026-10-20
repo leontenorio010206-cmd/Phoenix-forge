@@ -98,6 +98,7 @@ def core_install(core, cli=None, runner=subprocess.run):
 def library_install(name, cli=None, runner=subprocess.run):
     if not LIB_RE.fullmatch(name):
         raise ValueError("Nombre de biblioteca Arduino inválido")
+    call_cli(["lib", "update-index"], cli=cli, timeout=300, runner=runner)
     return call_cli(["lib", "install", name], cli=cli, timeout=900, runner=runner)
 
 
