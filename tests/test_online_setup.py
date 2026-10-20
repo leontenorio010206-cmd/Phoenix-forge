@@ -41,6 +41,15 @@ def test_installed_digital_and_java_are_found_from_receipts(tmp_path):
     javaw = _receipt(tmp_path, "java", b"Java fixture")
     assert digital_bridge.locate_installed_digital([tmp_path]) == str(jar)
     assert digital_bridge.locate_java([tmp_path]) == str(javaw)
+    # Receipts from the actual Windows PowerShell downloader use backslashes.
+    for kind in ("digital", "java"):
+        folder = digital_bridge._OPTIONAL_COMPONENTS[kind][0]
+        receipt = tmp_path / folder / "phoenixforge-component.json"
+        data = json.loads(receipt.read_text(encoding="utf-8"))
+        data["relative_path"] = data["relative_path"].replace("/", "\\")
+        receipt.write_text(json.dumps(data), encoding="utf-8")
+    assert digital_bridge.locate_installed_digital([tmp_path]) == str(jar)
+    assert digital_bridge.locate_java([tmp_path]) == str(javaw)
     jar.write_bytes(b"modified")
     assert digital_bridge.locate_installed_digital([tmp_path]) is None
 
@@ -94,3 +103,12 @@ def test_setup_build_manifest_disallows_untrusted_urls(tmp_path):
     (root / "installer/optional-components.json").write_text(json.dumps(orig), encoding="utf-8")
     with pytest.raises(ValueError, match="Descarga insegura"):
         verify_components_manifest(root)
+
+
+def test_icarus_windows_build_avoids_parallel_mkdir_race():
+    root = Path(__file__).resolve().parents[1]
+    build = (root / "tools/build_icarus_msys2.sh").read_text(encoding="utf-8")
+    patch = (root / "tools/patches/iverilog12-winpaths.patch").read_text(encoding="utf-8")
+    assert "make -j1" in build
+    assert "make -j2" not in build
+    assert 'call \\"%s%civlpp' in patch

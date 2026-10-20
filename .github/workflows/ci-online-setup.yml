@@ -52,6 +52,22 @@ jobs:
             & $ps51 -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $installer -Component $component -InstallDir $prefix
             if ($LASTEXITCODE -ne 0) { throw "Idempotence failed: $component" }
           }
+      - name: Verify PhœnixForge detects real Windows installer receipts
+        shell: pwsh
+        run: |
+          $env:PF_INTEGRATIONS_TEST = Join-Path $env:RUNNER_TEMP 'PhoenixForge-Real-Optional-Integration\Integrations'
+          @'
+          import os
+          from pathlib import Path
+          from app.integrations.digital_bridge import locate_installed_digital, locate_java
+          root = Path(os.environ["PF_INTEGRATIONS_TEST"])
+          digital = locate_installed_digital([root])
+          java = locate_java([root])
+          assert digital and Path(digital).name == "Digital.jar", digital
+          assert java and Path(java).name.lower() == "javaw.exe", java
+          print("OK: Digital.jar y Java detectados desde recibos nativos de Windows")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Install test-only NSIS compiler
         shell: pwsh
         run: |

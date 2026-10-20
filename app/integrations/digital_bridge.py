@@ -186,12 +186,17 @@ def _receipt_binary(kind, root):
     try:
         info = json.loads(receipt.read_text(encoding="utf-8-sig"))
         rel = info["relative_path"]
-        if (info["component"] != kind or info["archive_sha256"] != archive_hash
-                or not isinstance(rel, str) or len(rel) > 400
-                or "\\" in rel or ":" in rel
-                or rel.startswith("/") or any(p in ("", ".", "..") for p in rel.split("/"))):
+        if not isinstance(rel, str):
             return None
-        binary = directory.joinpath(*rel.split("/"))
+        # Windows PowerShell writes relative_path using backslashes; both forms
+        # must be accepted, but no absolute paths or traversal are permitted.
+        normalized = rel.replace("\\", "/")
+        if (info["component"] != kind or info["archive_sha256"] != archive_hash
+                or len(normalized) > 400 or ":" in normalized
+                or normalized.startswith("/") or "\x00" in normalized
+                or any(p in ("", ".", "..") for p in normalized.split("/"))):
+            return None
+        binary = directory.joinpath(*normalized.split("/"))
         if (binary.name.lower() != filename or not binary.is_file()
                 or binary.is_symlink() or not binary.resolve().is_relative_to(directory.resolve())):
             return None

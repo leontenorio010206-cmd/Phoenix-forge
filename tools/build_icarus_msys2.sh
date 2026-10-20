@@ -23,7 +23,9 @@ export ac_cv_header_readline_history_h=no
 ./configure --host=x86_64-w64-mingw32 --prefix=/PhoenixForge \
   CC=gcc CXX=g++ CFLAGS="-O2 -ffile-prefix-map=$pf_work=." \
   CXXFLAGS="-O2 -ffile-prefix-map=$pf_work=." LDFLAGS="-static-libgcc -static-libstdc++"
-make -j2
+# Icarus 12 subprojects have non-atomic 'mkdir dep' targets under parallel make on MSYS2.
+# Serial build avoids sporadic 'mkdir: File exists' failures without affecting runtime performance.
+make -j1
 make install DESTDIR="$pf_work/stage"
 pacman -Q > "$pf_root/build/msys2-packages.txt"
 cygpath -w "$pf_work/stage/PhoenixForge" > "$pf_root/build/icarus-prefix.txt"
