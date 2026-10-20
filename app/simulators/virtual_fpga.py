@@ -12,7 +12,7 @@ PROBE_MODULE = "pf_virtual_probe"
 PROBE_FILE = "__phoenix_virtual_probe.v"
 MAX_WIDTH = 16
 MAX_PORTS = 40
-OUTPUT_PATTERN = re.compile(r"^PF_OUT:([A-Za-z_][\w$]*)=([01xXzZ]+)$", re.M)
+OUTPUT_PATTERN = re.compile(r"^PF_OUT:([A-Za-z_][\w$]*)=([01xXzZ]+)\r?$", re.M)
 
 
 def select_ports(project, top=None):
