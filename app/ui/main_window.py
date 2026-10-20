@@ -11,6 +11,7 @@ from app.ui.common import button, card, label
 from app.ui.theme import STYLE
 from app.ui.studio import Studio
 from app.ui.examples_panel import ExamplesPanel
+from app.ui.digital_export_panel import DigitalExportPanel
 from app.devices.simulation import device_demo_project, rtl_readiness
 from app.ui.management import DevicePanel, PluginPanel, SettingsPanel
 from app.ui.project_actions import ProjectActions, guarded
@@ -69,7 +70,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         side.addWidget(version)
         self.navigation = W.QListWidget()
         self.navigation.setObjectName("Navigation")
-        self.navigation.addItems(["Inicio", "Estudio HDL", "Dispositivos FPGA", "Proyectos de muestra", "Plugins", "Configuración"])
+        self.navigation.addItems(["Inicio", "Estudio HDL", "Dispositivos FPGA", "Proyectos de muestra", "Exportar a Digital", "Plugins", "Configuración"])
         side.addWidget(self.navigation, 1)
         build = label("   v%s  /  %s\n   RTL · Sin programación física" % (__version__, BINDING), "Muted")
         build.setStyleSheet("font-size: 10px; color: #7f94ad;")
@@ -81,9 +82,10 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.examples = ExamplesPanel()
         self.clock = self.examples.clock  # Interactive sample, no longer a top-level page.
         self.devices = DevicePanel(lambda: self.project, lambda: self.settings.values)
+        self.digital_export = DigitalExportPanel()
         self.plugins = PluginPanel(lambda: copy.deepcopy(self.project))
         self.settings = SettingsPanel()
-        for widget in (self.home, self.studio, self.devices, self.examples, self.plugins, self.settings):
+        for widget in (self.home, self.studio, self.devices, self.examples, self.digital_export, self.plugins, self.settings):
             self.stack.addWidget(widget)
         self.navigation.currentRowChanged.connect(self.stack.setCurrentIndex)
         shell.addWidget(self.stack, 1)
@@ -143,6 +145,8 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.devices.device_selected.connect(self.choose_device)
         self.devices.pins_changed.connect(self.change_pins)
         self.devices.bench.trace_ready.connect(self.virtual_trace)
+        self.digital_export.export_requested.connect(self.export_digital)
+        self.digital_export.virtual_requested.connect(self.open_virtual_from_export)
         self.settings.saved.connect(lambda _: self.update_tool_status())
 
     def make_menus(self):
@@ -177,6 +181,8 @@ class MainWindow(W.QMainWindow, ProjectActions):
 
     def navigate(self, index):
         self.navigation.setCurrentRow(index)
+        if index == 4:
+            self.digital_export.bind_project(self.project, keep_top=True)
 
     def editor_command(self, name):
         editor = self.studio.tabs.currentWidget()
@@ -193,10 +199,14 @@ class MainWindow(W.QMainWindow, ProjectActions):
     def source_changed(self, name, text):
         self.project.files[name] = text
         self.mark_dirty()
+        if self.stack.currentWidget() is self.digital_export:
+            self.digital_export.bind_project(self.project, keep_top=True)
 
     def simulation_changed(self, field, name):
         self.project.simulation[field] = name
         self.mark_dirty()
+        if self.stack.currentWidget() is self.digital_export:
+            self.digital_export.bind_project(self.project, keep_top=True)
 
     def open_example(self, key):
         if key == "clock":
@@ -222,7 +232,13 @@ class MainWindow(W.QMainWindow, ProjectActions):
     def choose_device(self, device):
         self.project.device = device
         self.mark_dirty()
+        self.digital_export.bind_project(self.project, keep_top=True)
         self.statusBar().showMessage("Perfil seleccionado: " + self.devices.profiles[device]["name"], 6000)
+
+    def open_virtual_from_export(self):
+        self.navigate(2)
+        self.devices.tabs.setCurrentIndex(1)
+        self.devices.bench.bind_project(self.project)
 
     def virtual_trace(self, data):
         self.project.artifacts["virtual/latest/virtual_fpga.vcd"] = data
