@@ -47,7 +47,7 @@ def main():
         environment = os.environ.copy()
         environment['PHOENIXFORGE_QT'] = 'pyside6'
         environment['QT_QPA_PLATFORM'] = 'windows'
-        invoke([sys.executable, '-m', 'pytest', '-q', '-m', 'not packaged',
+        invoke([sys.executable, '-m', 'pytest', '-vv', '--maxfail=1', '-m', 'not packaged',
                 '--junitxml=build/windows-tests.xml'], environment)
         result = ET.parse(str(ROOT / 'build/windows-tests.xml'))
         suites = list(result.iter('testsuite'))
