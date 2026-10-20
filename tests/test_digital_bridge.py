@@ -110,6 +110,8 @@ def test_digital_one_click_controls_exist(qt_app):
     window.navigate(4)
     panel = window.digital_export
     seen = []
+    # Prevent the real UI handler opening a native file picker in headless CI.
+    panel.bridge_requested.disconnect(window.prepare_and_open_digital)
     panel.bridge_requested.connect(seen.append)
     panel.bridge_button.click()
     assert seen == ["full_adder"]
