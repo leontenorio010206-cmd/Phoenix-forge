@@ -365,6 +365,10 @@ class MainWindow(W.QMainWindow, ProjectActions):
             W.QMessageBox.information(self, "Componentes", "Fuentes y avisos disponibles copiados a:\n" + str(target))
 
     def closeEvent(self, event):
+        if self.devices.bench.worker is not None:
+            W.QMessageBox.information(self, "FPGA virtual", "Espere a que termine el banco de pruebas virtual antes de cerrar.")
+            event.ignore()
+            return
         if self.worker is not None:
             if W.QMessageBox.question(self, "Simulación activa", "¿Detener la simulación y cerrar?", W.QMessageBox.Yes | W.QMessageBox.No) == W.QMessageBox.Yes:
                 self.close_after_run = True
