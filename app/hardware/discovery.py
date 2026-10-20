@@ -66,7 +66,7 @@ def _ps(command, runner=subprocess.run):
     if sys.platform != "win32":
         return []
     process = runner(["powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive",
-                      "-ExecutionPolicy", "Bypass", "-Command", command],
+                      "-Command", command],
                      capture_output=True, text=True, timeout=12, check=False)
     if process.returncode:
         raise RuntimeError("Windows no pudo enumerar el hardware: " + process.stderr[:300])
