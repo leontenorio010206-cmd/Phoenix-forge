@@ -94,7 +94,8 @@ class HardwareStudio(W.QWidget):
         self.timer = C.QTimer(self)
         self.timer.setInterval(8000)
         self.timer.timeout.connect(self.automatic_scan)
-        self.timer.start()
+        # Do not poll a hidden panel for the entire lifetime of the application.
+        # The first scan starts when Hardware Studio is opened.
 
     def _make_arduino(self):
         page = W.QWidget()
@@ -568,7 +569,14 @@ class HardwareStudio(W.QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        self.scan()
+        if not self.timer.isActive():
+            self.timer.start()
+        if self.worker is None:
+            self.scan()
+
+    def hideEvent(self, event):
+        self.timer.stop()
+        super().hideEvent(event)
 
     def automatic_scan(self):
         if self.isVisible() and self.worker is None:
