@@ -146,6 +146,8 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.devices.pins_changed.connect(self.change_pins)
         self.devices.bench.trace_ready.connect(self.virtual_trace)
         self.digital_export.export_requested.connect(self.export_digital)
+        self.digital_export.bridge_requested.connect(self.prepare_and_open_digital)
+        self.digital_export.copy_settings_requested.connect(self.copy_digital_settings)
         self.digital_export.virtual_requested.connect(self.open_virtual_from_export)
         self.settings.saved.connect(lambda _: self.update_tool_status())
 
