@@ -105,7 +105,11 @@ def test_board_json_parser():
 
 def test_pico_uf2_requires_bootsel_marker_and_no_overwrite(tmp_path):
     firmware = tmp_path / "program.uf2"
-    firmware.write_bytes(b"\x55\x46\x32\x0A" * 12)
+    import struct
+    block = bytearray(512)
+    struct.pack_into("<II", block, 0, 0x0A324655, 0x9E5D5157)
+    struct.pack_into("<I", block, 508, 0x0AB16F30)
+    firmware.write_bytes(block)
     target = tmp_path / "pico"
     target.mkdir()
     with pytest.raises(ValueError):
