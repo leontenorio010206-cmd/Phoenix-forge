@@ -56,6 +56,8 @@ def classify_usb(name, instance, status=""):
         if vid == "1A86" and "arduino" in (name or "").lower():
             origin = "Compatible/clon posible (CH340; no certificado)"
             note += " No es prueba de falsificación; identifica solo el puente serie."
+        elif vid == "1A86":
+            origin = "CH340/CH341: común en clones Arduino; origen no verificable"
         elif vid in {"0403", "10C4"}:
             origin = "Origen no verificable (puente FTDI/CP210x)"
     return HardwareDevice((name or "Dispositivo USB")[:180], kind, (instance or "")[:240],
