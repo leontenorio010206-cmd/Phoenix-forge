@@ -22,12 +22,12 @@ jobs:
           $a = Join-Path $dir 'ivlpp.exe'
           $b = Join-Path $dir 'ivl.exe'
           $samples = @(
-            ('"{0}" /UPN | "{1}" /UPN' -f $a,$b),
-            ('call "{0}" /UPN | call "{1}" /UPN' -f $a,$b),
-            ('cmd /d /s /c ""{0}" /UPN | "{1}" /UPN"' -f $a,$b),
-            ('"{0}" /UPN' -f $a),
-            ('call "{0}" /UPN' -f $a),
-            ('ver > NUL && "{0}" /UPN | "{1}" /UPN' -f $a,$b)
+            ('"{0}" /user | "{1}" /user' -f $a,$b),
+            ('call "{0}" /user | call "{1}" /user' -f $a,$b),
+            ('cmd /d /s /c ""{0}" /user | "{1}" /user"' -f $a,$b),
+            ('"{0}" /user' -f $a),
+            ('call "{0}" /user' -f $a),
+            ('ver > NUL && "{0}" /user | "{1}" /user' -f $a,$b)
           )
           foreach ($sample in $samples) {
             Write-Host "Testing: $sample"
