@@ -79,6 +79,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.home = self.make_home()
         self.studio = Studio()
         self.examples = ExamplesPanel()
+        self.clock = self.examples.clock  # Interactive sample, no longer a top-level page.
         self.devices = DevicePanel()
         self.plugins = PluginPanel(lambda: copy.deepcopy(self.project))
         self.settings = SettingsPanel()
@@ -135,6 +136,8 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.studio.import_requested.connect(self.import_sources)
         self.studio.new_source_requested.connect(self.new_source)
         self.examples.example_requested.connect(self.open_example)
+        self.clock.create_requested.connect(self.new_clock)
+        self.clock.trace_requested.connect(self.clock_trace)
         self.devices.demo_requested.connect(self.open_device_demo)
         self.devices.simulate_requested.connect(self.simulate_selected_device)
         self.devices.device_selected.connect(self.choose_device)
@@ -314,6 +317,10 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.studio.output_tabs.setCurrentWidget(self.studio.wave)
 
     @guarded
+    def clock_trace(self, red, green, yellow):
+        self.attach_internal(internal_clock_result(red, green, yellow), "internal_clock")
+
+    @guarded
     def external_wave(self):
         tool = find_executable(self.settings.values.get("gtkwave", ""), "gtkwave")
         if not tool:
@@ -359,6 +366,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         if not self.confirm_discard():
             event.ignore()
             return
+        self.clock.stop()
         for pid in list(self.plugins.manager.loaded):
             try:
                 self.plugins.manager.unload(pid)

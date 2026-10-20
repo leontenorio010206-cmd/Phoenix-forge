@@ -32,7 +32,12 @@ def test_editor_labs_and_project_actions(qt_app, tmp_path, monkeypatch):
     editor.undo(); assert editor.toPlainText() == original
     editor.redo(); assert 'Test edit' in editor.toPlainText()
     assert window.navigation.item(3).text() == 'Proyectos de muestra'
-    assert window.examples is not None
+    assert window.examples.clock is window.clock
+    window.examples.tabs.setCurrentIndex(1)
+    window.clock.step(5 * 50000000)
+    assert window.clock.model.state == 'VERDE'
+    window.clock.reset()
+    assert window.clock.model.state == 'ROJO'
     path = tmp_path / 'from_gui.pforge'
     monkeypatch.setattr(W.QFileDialog, 'getSaveFileName', lambda *a, **k: (str(path), ''))
     assert window.save_project()
