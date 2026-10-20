@@ -1,4 +1,4 @@
-name: PhoenixForge | Windows 10 x64 v1.2
+name: PhoenixForge | Windows 10 x64 v1.3
 
 on:
   workflow_dispatch:
@@ -91,7 +91,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: PhoenixForge-Windows-v1.2
+          name: PhoenixForge-Windows-v1.3
           path: |
             dist/*.exe
             dist/*.zip
@@ -104,7 +104,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: PhoenixForge-v1.2-Diagnosticos
+          name: PhoenixForge-v1.3-Diagnosticos
           path: |
             build/*.json
             build/*.txt
