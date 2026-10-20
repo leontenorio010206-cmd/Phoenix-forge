@@ -117,14 +117,20 @@ def prepare_sketch(text, basename="PhoenixBlink", root=None):
 def compile_sketch(folder, fqbn, cli=None, runner=subprocess.run):
     if not FQBN_RE.fullmatch(fqbn):
         raise ValueError("FQBN de placa Arduino inválido")
-    return call_cli(["compile", "--fqbn", fqbn, str(Path(folder).resolve())],
+    build = Path(folder).resolve().parent / (Path(folder).name + "-build")
+    return call_cli(["compile", "--fqbn", fqbn, "--output-dir", str(build),
+                     str(Path(folder).resolve())],
                     cli=cli, timeout=600, runner=runner)
 
 
 def upload_sketch(folder, fqbn, port, cli=None, runner=subprocess.run):
     if not FQBN_RE.fullmatch(fqbn) or not PORT_RE.fullmatch(port):
         raise ValueError("Selecciona un puerto y un FQBN Arduino válidos")
-    return call_cli(["upload", "-p", port, "--fqbn", fqbn, str(Path(folder).resolve())],
+    build = Path(folder).resolve().parent / (Path(folder).name + "-build")
+    if not build.is_dir():
+        raise FileNotFoundError("Primero compila el sketch y conserva su carpeta de salida")
+    return call_cli(["upload", "-p", port, "--fqbn", fqbn, "--input-dir", str(build),
+                     str(Path(folder).resolve())],
                     cli=cli, timeout=600, runner=runner)
 
 
