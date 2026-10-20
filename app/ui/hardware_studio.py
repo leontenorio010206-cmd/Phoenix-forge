@@ -6,6 +6,8 @@ from app.ui.qt import QtCore as C, QtGui as G, QtWidgets as W, Qt, Signal
 from app.ui.common import label, button, card
 from app.hardware.discovery import list_usb_devices, added_devices
 from app.hardware import arduino
+from app.hardware.arduino_catalog import (model_shortcuts, merge_catalog,
+    BASIC_PACK, CORE_HEADERS, EXAMPLES, DEFAULT_CORES)
 from app.devices.catalog import load_profiles
 
 EXAMPLE = """// Ejemplo para Arduino Uno (LED integrado)
@@ -44,6 +46,7 @@ class HardwareStudio(W.QWidget):
         self.detected = []
         self.seen_once = False
         self.last_sketch_folder = None
+        self.model_catalog = model_shortcuts()
         outer = W.QVBoxLayout(self)
         outer.setContentsMargins(20, 15, 20, 14)
         outer.setSpacing(10)
@@ -79,6 +82,7 @@ class HardwareStudio(W.QWidget):
         self._make_arduino()
         self._make_pico()
         self._make_fpga()
+        self._make_arduino_catalog()
 
         self.log = W.QPlainTextEdit()
         self.log.setReadOnly(True)
@@ -108,8 +112,7 @@ class HardwareStudio(W.QWidget):
         opts.addWidget(label("Placa / FQBN"))
         self.fqbn = W.QComboBox()
         self.fqbn.setEditable(True)
-        self.fqbn.addItems(["arduino:avr:uno", "arduino:avr:nano", "arduino:avr:mega",
-                            "arduino:samd:mkrzero", "arduino:mbed_rp2040:pico"])
+        self.fqbn.addItems([fqbn for name, fqbn, core in model_shortcuts()])
         self.fqbn.setMinimumWidth(220)
         opts.addWidget(self.fqbn, 2)
         opts.addWidget(label("Puerto"))
@@ -120,7 +123,7 @@ class HardwareStudio(W.QWidget):
         layout.addLayout(opts)
         tools = W.QHBoxLayout()
         self.core = W.QComboBox()
-        self.core.addItems(["arduino:avr", "arduino:samd", "arduino:mbed_rp2040"])
+        self.core.addItems(list(DEFAULT_CORES))
         tools.addWidget(self.core, 1)
         tools.addWidget(button("Instalar plataforma", self.install_core))
         self.library = W.QLineEdit()
@@ -188,6 +191,185 @@ class HardwareStudio(W.QWidget):
                 G.QDesktopServices.openUrl(C.QUrl(link))))
         layout.addStretch()
         self.tabs.addTab(page, "FPGA / Drivers")
+
+    def _make_arduino_catalog(self):
+        page = W.QWidget()
+        outer = W.QVBoxLayout(page)
+        outer.setContentsMargins(10, 10, 10, 10)
+        scroller = W.QScrollArea()
+        scroller.setWidgetResizable(True)
+        outer.addWidget(scroller)
+        surface = W.QWidget()
+        scroller.setWidget(surface)
+        layout = W.QVBoxLayout(surface)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.addWidget(label("Modelos y bibliotecas Arduino", "Heading"))
+        layout.addWidget(label(
+            "Perfiles iniciales incluidos; los modelos adicionales los proporciona Arduino CLI "
+            "según las plataformas instaladas. Un adaptador USB no certifica la autenticidad.",
+            "Muted", True))
+        line = W.QHBoxLayout()
+        self.model_filter = W.QLineEdit()
+        self.model_filter.setPlaceholderText("Buscar Uno, Nano, Mega, Portenta, MKR, FQBN...")
+        self.model_filter.textChanged.connect(self.filter_models)
+        line.addWidget(self.model_filter, 1)
+        line.addWidget(button("Leer catálogo Arduino CLI", self.read_model_catalog, True))
+        layout.addLayout(line)
+        self.models = W.QTreeWidget()
+        self.models.setHeaderLabels(["Modelo", "FQBN", "Plataforma"])
+        self.models.setMinimumHeight(170)
+        self.models.itemDoubleClicked.connect(self.choose_model)
+        layout.addWidget(self.models)
+        layout.addWidget(label("Doble clic en el modelo para seleccionar FQBN y plataforma.", "Muted"))
+        layout.addSpacing(9)
+        layout.addWidget(label("Bibliotecas básicas", "Heading"))
+        layout.addWidget(label(
+            "Arduino.h y estas cabeceras, cuando las soporte tu placa, se proporcionan "
+            "al instalar su plataforma: " + ", ".join(CORE_HEADERS) + ".",
+            "Muted", True))
+        layout.addWidget(label(
+            "Paquete adicional recomendado (instalación opcional): " + ", ".join(BASIC_PACK),
+            "Muted", True))
+        buttons = W.QHBoxLayout()
+        buttons.addWidget(button("Instalar paquete básico", self.install_basics, True))
+        buttons.addWidget(button("Actualizar bibliotecas", self.upgrade_libraries))
+        buttons.addWidget(button("Ver instaladas", self.list_libraries))
+        layout.addLayout(buttons)
+        libtools = W.QHBoxLayout()
+        self.catalog_search = W.QLineEdit()
+        self.catalog_search.setPlaceholderText("Buscar biblioteca actual en Arduino Library Manager")
+        self.catalog_search.returnPressed.connect(self.search_library)
+        libtools.addWidget(self.catalog_search, 1)
+        libtools.addWidget(button("Buscar en línea", self.search_library))
+        libtools.addWidget(button("Instalar nombre exacto", self.install_catalog_library))
+        layout.addLayout(libtools)
+        self.library_results = W.QPlainTextEdit()
+        self.library_results.setReadOnly(True)
+        self.library_results.setMaximumHeight(140)
+        layout.addWidget(self.library_results)
+        layout.addSpacing(8)
+        layout.addWidget(label("Ejemplos básicos integrados", "Heading"))
+        demos = W.QHBoxLayout()
+        self.example = W.QComboBox()
+        self.example.addItems(list(EXAMPLES))
+        demos.addWidget(self.example, 1)
+        demos.addWidget(button("Enviar al editor .ino", self.apply_example))
+        layout.addLayout(demos)
+        layout.addWidget(label(
+            "El paquete inicial instala bibliotecas a través de Arduino CLI con tu permiso. "
+            "No se distribuye una copia universal de código de terceros ni se cambian "
+            "controladores USB automáticamente.", "Muted", True))
+        layout.addStretch()
+        self.tabs.addTab(page, "Modelos y librerías")
+        self.filter_models("")
+
+    def filter_models(self, term):
+        query = term.strip().casefold()
+        self.models.clear()
+        count = 0
+        for name, fqbn, core in self.model_catalog:
+            if not query or query in name.casefold() or query in fqbn.casefold():
+                row = W.QTreeWidgetItem(self.models, [name, fqbn, core])
+                row.setData(0, Qt.UserRole, fqbn)
+                count += 1
+        if count:
+            self.models.setCurrentItem(self.models.topLevelItem(0))
+
+    def choose_model(self, item, column=0):
+        fqbn, core = item.text(1), item.text(2)
+        self.fqbn.setCurrentText(fqbn)
+        if self.core.findText(core) < 0:
+            self.core.addItem(core)
+        self.core.setCurrentText(core)
+        self.tabs.setCurrentIndex(0)
+        self.log.appendPlainText("Placa seleccionada: " + item.text(0) + " / " + fqbn +
+                                 " (revisa el hardware físico antes de subir).")
+
+    def read_model_catalog(self):
+        self._run("Leyendo modelos de plataformas instaladas", arduino.board_listall,
+                  self._got_model_catalog)
+
+    def _got_model_catalog(self, models):
+        self.model_catalog = models
+        self.filter_models(self.model_filter.text())
+        for name, fqbn, core in models:
+            if self.fqbn.findText(fqbn) < 0:
+                self.fqbn.addItem(fqbn)
+            if self.core.findText(core) < 0:
+                self.core.addItem(core)
+        self.log.appendPlainText("%d modelos disponibles (atajos + plataformas instaladas)." % len(models))
+
+    def install_basics(self):
+        description = (
+            "Se consultará el índice de Arduino Library Manager y se intentarán instalar "
+            "las bibliotecas recomendadas:\n\n" + ", ".join(BASIC_PACK) +
+            "\n\nLas dependencias se instalan según el gestor. Puede usar Internet "
+            "y ejecutar herramientas externas. ¿Autorizar instalación?")
+        if self._confirm("Instalar bibliotecas básicas", description):
+            self._run("Instalando paquete básico", arduino.install_starter_pack,
+                      self._basics_installed)
+
+    def _basics_installed(self, result):
+        names = result.get("installed_or_present", [])
+        failed = result.get("failed", [])
+        self.library_results.setPlainText(
+            "Instaladas o presentes:\n" + "\n".join(names) +
+            "\n\nNo instaladas:\n" +
+            ("\n".join(name + ": " + error for name, error in failed) if failed else "Ninguna"))
+        self.log.appendPlainText("Paquete básico: %d listas, %d fallidas." %
+                                 (len(names), len(failed)))
+
+    def upgrade_libraries(self):
+        if self._confirm("Actualizar bibliotecas",
+            "Arduino CLI comprobará versiones actuales en el índice oficial e instalará "
+            "las últimas versiones compatibles según el gestor. Algunas actualizaciones "
+            "pueden romper proyectos previos. ¿Continuar?"):
+            self._run("Actualizando bibliotecas Arduino", arduino.upgrade_libraries,
+                      lambda result: self.library_results.setPlainText(str(result)[-9000:]))
+
+    def list_libraries(self):
+        self._run("Leyendo bibliotecas instaladas", arduino.library_list,
+                  self._show_libraries)
+
+    def _show_libraries(self, items):
+        names = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            library = item.get("library", item)
+            name = library.get("name", "") if isinstance(library, dict) else ""
+            version = library.get("version", "") if isinstance(library, dict) else ""
+            if name:
+                names.append(name + (" " + str(version) if version else ""))
+        self.library_results.setPlainText(
+            "\n".join(names[:200]) or "No hay bibliotecas listadas. Instala una plataforma primero.")
+
+    def search_library(self):
+        name = self.catalog_search.text().strip()
+        if name:
+            self._run("Buscando bibliotecas", lambda: arduino.library_search(name),
+                      lambda response: self.library_results.setPlainText(str(response)[-9000:]))
+
+    def install_catalog_library(self):
+        name = self.catalog_search.text().strip()
+        if not name:
+            return
+        if self._confirm("Instalar biblioteca Arduino",
+            "Descargar e instalar desde Arduino Library Manager la biblioteca «" + name +
+            "» y sus dependencias. Confirma el nombre exacto antes de instalar. ¿Continuar?"):
+            self._run("Instalando biblioteca", lambda: arduino.library_install(name),
+                      lambda response: self.library_results.setPlainText(str(response)[-9000:]))
+
+    def apply_example(self):
+        name = self.example.currentText()
+        if name not in EXAMPLES:
+            return
+        if self.sketch.toPlainText().strip() and not self._confirm(
+            "Cambiar sketch", "Se sustituirá el texto del editor por el ejemplo " + name +
+            ". Los cambios no guardados se perderán. ¿Continuar?"):
+            return
+        self.sketch.setPlainText(EXAMPLES[name])
+        self.tabs.setCurrentIndex(0)
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -264,6 +446,7 @@ class HardwareStudio(W.QWidget):
         self.detail.setPlainText(
             "Tipo: " + dev.kind + "\n"
             "Identificación: " + dev.confidence + "\n"
+            "Origen Arduino: " + dev.origin + "\n"
             "ID: " + dev.identity + "\n"
             "Puerto: " + (dev.port or "No identificado") + "\n"
             + dev.note)

@@ -20,7 +20,7 @@ CLI_VERSION = "1.5.1"
 CLI_URL = ("https://github.com/arduino/arduino-cli/releases/download/v1.5.1/"
            "arduino-cli_1.5.1_Windows_64bit.zip")
 CLI_SHA256 = "fabe42e0eb04d00e776a66178299ff95a46c623dbc260f997e58fd514853dd40"
-FQBN_RE = re.compile(r"^[A-Za-z0-9_]+:[A-Za-z0-9_]+:[A-Za-z0-9_.-]+$")
+FQBN_RE = re.compile(r"^[A-Za-z0-9_]+:[A-Za-z0-9_]+:[A-Za-z0-9_.-]+(?::[A-Za-z0-9_]+=[A-Za-z0-9_.-]+(?:,[A-Za-z0-9_]+=[A-Za-z0-9_.-]+)*)?$")
 CORE_RE = re.compile(r"^arduino:[A-Za-z0-9_-]+$")
 LIB_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_. \-]{0,99}$")
 PORT_RE = re.compile(r"^(COM[1-9][0-9]{0,2}|/dev/tty(?:ACM|USB)[0-9]+)$", re.I)
@@ -159,3 +159,62 @@ def copy_uf2(firmware, mount):
     with image.open("rb") as src, target.open("xb") as dst:
         shutil.copyfileobj(src, dst)
     return str(target)
+
+
+# Arduino CLI is the authoritative source for available board FQBNs and library
+# versions. The short offline list is just for convenient first use.
+def board_listall(cli=None, runner=subprocess.run):
+    """All boards from INSTALLED platforms (not every board ever manufactured)."""
+    from app.hardware.arduino_catalog import merge_catalog, model_shortcuts
+    raw = call_cli(["board", "listall", "--json"], cli=cli, runner=runner)
+    data = json.loads(raw)
+    items = data.get("boards", []) if isinstance(data, dict) else data
+    if not isinstance(items, list):
+        raise ValueError("Inventario de placas de Arduino CLI no reconocido")
+    return merge_catalog(model_shortcuts(), items)
+
+
+def library_list(cli=None, runner=subprocess.run):
+    """Inventory installed libraries, including those shipped by the board core."""
+    raw = call_cli(["lib", "list", "--all", "--json"], cli=cli, runner=runner)
+    data = json.loads(raw)
+    if isinstance(data, dict):
+        items = data.get("installed_libraries", data.get("libraries", []))
+    else:
+        items = data
+    if not isinstance(items, list):
+        raise ValueError("Inventario de bibliotecas no reconocido")
+    return items
+
+
+def library_search(query, cli=None, runner=subprocess.run):
+    if not isinstance(query, str) or not 1 <= len(query.strip()) <= 80:
+        raise ValueError("Escribe una búsqueda de biblioteca (1–80 caracteres)")
+    if any(ord(c) < 32 for c in query):
+        raise ValueError("Consulta inválida")
+    return call_cli(["lib", "search", "--names", query.strip()],
+                    cli=cli, timeout=90, runner=runner)
+
+
+def install_starter_pack(cli=None, runner=subprocess.run):
+    """One-click transaction requested by the user. No hidden background installs.
+
+    Arduino platform includes Wire/SPI/etc. Download optional library manager
+    dependencies only; report all partial failures instead of hiding them.
+    """
+    from app.hardware.arduino_catalog import BASIC_PACK
+    call_cli(["lib", "update-index"], cli=cli, timeout=300, runner=runner)
+    successes, failures = [], []
+    for name in BASIC_PACK:
+        try:
+            call_cli(["lib", "install", name], cli=cli, timeout=900, runner=runner)
+            successes.append(name)
+        except (RuntimeError, OSError, subprocess.TimeoutExpired) as error:
+            failures.append((name, str(error)[:240]))
+    return {"installed_or_present": successes, "failed": failures}
+
+
+def upgrade_libraries(cli=None, runner=subprocess.run):
+    """Update installed libraries after confirmation, not on USB attachment."""
+    call_cli(["lib", "update-index"], cli=cli, timeout=300, runner=runner)
+    return call_cli(["lib", "upgrade"], cli=cli, timeout=900, runner=runner)
