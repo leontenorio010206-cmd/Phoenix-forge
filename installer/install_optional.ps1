@@ -87,7 +87,8 @@ try {
   }
   if ($candidates.Count -ne 1) { throw "El archivo esperado no aparece exactamente una vez" }
   $expectedFile = $candidates[0]
-  $relative = $expectedFile.FullName.Substring($stage.Length + 1)
+  # Receipts use portable forward slashes; Python rejects Windows-only separators.
+  $relative = $expectedFile.FullName.Substring($stage.Length + 1).Replace('\', '/')
   $receipt = @{
     schema_version = 1
     component = $Component
