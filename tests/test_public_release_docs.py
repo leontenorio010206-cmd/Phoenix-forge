@@ -14,7 +14,7 @@ def test_public_release_has_explicit_creator_and_digital_rights():
     for document in (credits, legal, notices):
         assert "Digital" in document
         assert "Helmut Neemann" in document
-        assert "GPLv3" in document or "GPL versión 3" in document or "GPLv3" in document
+        assert any(term in document for term in ("GPLv3", "GPL versión 3", "GNU General Public License v3", "GNU GPL versión 3"))
         assert "https://github.com/hneemann/Digital" in document
     assert "1.7.0" in readme
     assert "primera" in readme.lower()
