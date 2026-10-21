@@ -20,6 +20,12 @@ jobs:
           python -m pip install pytest==8.3.5
           python -m compileall -q app tools tests
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # These commands are invoked by the release workflow as standalone files.
+          # Catch import-path errors before the expensive 7-minute Icarus build.
+          python tools/release_gate.py --help
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/build_setup_windows.py --help
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m pytest tests/test_online_setup.py -q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Check PowerShell parser and optional manifests
