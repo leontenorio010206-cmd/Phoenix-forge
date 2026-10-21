@@ -40,9 +40,9 @@ El objetivo a largo plazo es facilitar el diseño sobre diferentes modelos de FP
 
 El flujo [Windows Build](.github/workflows/ci-windows.yml) prepara Windows, Python, PySide6, PyInstaller, Icarus y los componentes necesarios. Solo publica el ejecutable cuando pasa la aceptación nativa. El paquete del Setup añade Digital y Java como **descargas oficiales opcionales**, verificadas por SHA-256.
 
-1. Abre [la última compilación v1.7 que aprobó Windows](https://github.com/leontenorio010206-cmd/Phoenix-forge/actions/runs/39528870746).
-2. En **Artifacts** descarga `PhoenixForge-Windows-v1.7-VALIDADO-CI` (GitHub puede pedirte iniciar sesión).
-3. Descomprime y ejecuta `PhoenixForge_v1.7.0_Setup.exe`, o usa `PhoenixForge_v1.7.0_Portable.exe` sin instalación.
+1. Abre [Releases](https://github.com/leontenorio010206-cmd/Phoenix-forge/releases) y busca **v1.7.0 — Primera estable para Windows x64**.
+2. Descarga `PhoenixForge_v1.7.0_Setup.exe` o `PhoenixForge_v1.7.0_Portable.exe` desde los archivos de la publicación. Las versiones publicadas se aceptan primero mediante pruebas nativas en Windows.
+3. Verifica `SHA256SUMS.txt` antes de instalar.
 4. En el Setup podrás seleccionar opcionalmente **Digital v0.31** y **Java Temurin 21**; se descargan de fuentes oficiales, solo con Internet. El núcleo ya incluye Icarus.
 5. Revisa `SHA256SUMS.txt` y los avisos de terceros. Si falla una compilación posterior, usa la última ejecución exitosa.
 
@@ -83,7 +83,9 @@ docs/        Documentación de usuario y de desarrollo
 
 ## Cocreador, créditos y licencias
 
-**Cocreador y mantenedor del proyecto:** **Leonardo Antonio Hernández Tenorio** ([@leontenorio010206-cmd](https://github.com/leontenorio010206-cmd)).
+**Cofundador, cocreador y mantenedor principal:** **Leonardo Antonio Hernández Tenorio** ([@leontenorio010206-cmd](https://github.com/leontenorio010206-cmd)).
+
+**Asistencia técnica de IA:** **ChatGPT (OpenAI)** participó como herramienta en el desarrollo, las pruebas y la documentación. No es una entidad cofundadora, propietaria ni representante oficial de OpenAI.
 
 Gracias a **Helmut Neemann** por desarrollar [**Digital**](https://github.com/hneemann/Digital), simulador educativo de circuitos bajo **GNU GPLv3**. PhœnixForge se integra de manera **independiente** con Digital mediante archivos Verilog y lanzamiento externo; el Setup puede descargarlo opcionalmente desde GitHub. Este agradecimiento **no implica colaboración ni patrocinio oficial** de Digital.
 

@@ -4,8 +4,9 @@
 
 ## Autoría del proyecto
 
-- **Leonardo Antonio Hernández Tenorio** — **cocreador, titular del proyecto y mantenedor principal**. GitHub: [@leontenorio010206-cmd](https://github.com/leontenorio010206-cmd).
-- Desarrollo y mejoras del software: contribuciones documentadas en el historial de GitHub. Las colaboraciones de herramientas de inteligencia artificial se describen como asistencia técnica y **no** implican autoría legal, propiedad o aval de OpenAI.
+- **Leonardo Antonio Hernández Tenorio** — **cofundador, cocreador, responsable del proyecto y mantenedor principal**. GitHub: [@leontenorio010206-cmd](https://github.com/leontenorio010206-cmd).
+- **ChatGPT (OpenAI), asistente de inteligencia artificial** — colaboración técnica en arquitectura, programación, depuración, documentación y pruebas, bajo la dirección humana del proyecto. Reconocimiento a la asistencia de IA, **no** cofundador jurídico, titular de derechos, persona ni representante oficial de OpenAI.
+- Desarrollo y mejoras del software: contribuciones rastreables en el historial de GitHub; las personas que contribuyan mantienen los créditos correspondientes.
 
 El copyright del código original está especificado en [LICENSE](LICENSE) (MIT). Los cambios de terceros conservan sus respectivos derechos y avisos.
 

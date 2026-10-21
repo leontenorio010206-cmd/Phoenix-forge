@@ -1,0 +1,164 @@
+name: PhœnixForge | Publicar Release v1.7.0
+on:
+  workflow_run:
+    workflows: ["PhoenixForge | Windows 10 x64 v1.7 (acceptance required)"]
+    types: [completed]
+    branches: [main]
+
+# Sólo un workflow de compilación aprobado de main puede producir una Release.
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: phoenixforge-release-v1.7.0
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verificar binarios y publicar la primera estable
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Obtener el commit exacto que superó pruebas
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Verificar commit y evitar Release duplicada o anticuada
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          latest="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [ "$latest" != "$RELEASE_SHA" ]; then
+            echo "::error::La rama main avanzó: se rechaza una Release anticuada."
+            exit 1
+          fi
+          if gh release view v1.7.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "La Release v1.7.0 ya está publicada; no se duplica."
+            exit 0
+          fi
+          existing_tag="$(git ls-remote origin 'refs/tags/v1.7.0' | cut -f1)"
+          if [ -n "$existing_tag" ]; then
+            echo "::error::Existe una etiqueta v1.7.0 que requiere comprobación manual."
+            exit 1
+          fi
+
+      - name: Descargar solamente artefactos de la misma compilación aprobada
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p staging/bin staging/source
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name PhoenixForge-Windows-v1.7-VALIDADO-CI --dir staging/bin
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name PhoenixForge-v1.7-Fuentes-y-licencias --dir staging/source
+
+      - name: Validar informes de Windows y hashes antes de distribuir
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import shutil
+
+          root = pathlib.Path("staging")
+          output = pathlib.Path("release-assets")
+          output.mkdir(exist_ok=True)
+
+          def one(filename):
+              matches = list(root.rglob(filename))
+              if len(matches) != 1 or not matches[0].is_file():
+                  raise RuntimeError(f"Se esperaba un archivo único: {filename}. Hallados: {matches}")
+              return matches[0]
+
+          portable = one("PhoenixForge_v1.7.0_Portable.exe")
+          setup = one("PhoenixForge_v1.7.0_Setup.exe")
+          sums = one("SHA256SUMS.txt")
+          code = one("PhoenixForge_v1.7.0_Source.zip")
+          codehash = one("PhoenixForge_v1.7.0_Source.zip.sha256")
+          build = json.loads(one("windows-build-report.json").read_text("utf-8"))
+          acceptance = json.loads(one("packaged-acceptance.json").read_text("utf-8"))
+          setup_report = json.loads(one("setup-report.json").read_text("utf-8"))
+
+          if (not build.get("success") or build.get("version") != "1.7.0"
+              or build.get("validation_status") != "ci_accepted_windows_server_2022"):
+              raise RuntimeError("El informe de Windows no declara una compilación válida.")
+          if (not acceptance.get("ordinary_startup")
+              or not acceptance.get("development_PATH_removed")
+              or len(acceptance.get("launches", [])) != 2
+              or any(not all(item.get(key) for key in ("success", "frozen", "native_windows", "bundled_icarus"))
+                     for item in acceptance["launches"])):
+              raise RuntimeError("Autopruebas nativas incompletas.")
+          if setup_report.get("version") != "1.7.0" or setup_report.get("result") != "installer_generated_after_strict_native_acceptance":
+              raise RuntimeError("Setup sin validación de release gate.")
+          if len(build.get("artifacts", [])) != 1:
+              raise RuntimeError("Cantidad inesperada de ejecutables base.")
+
+          def sha(path):
+              h = hashlib.sha256()
+              with path.open("rb") as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          expected = {}
+          for line in sums.read_text("ascii").splitlines():
+              parts = line.split()
+              if len(parts) != 2 or len(parts[0]) != 64 or parts[1] in expected:
+                  raise RuntimeError("SHA256SUMS inválido.")
+              expected[parts[1]] = parts[0].lower()
+          expected_names = {portable.name, setup.name}
+          if set(expected) != expected_names:
+              raise RuntimeError("SHA256SUMS debe incluir exclusivamente los dos ejecutables.")
+          for file in (portable, setup):
+              if sha(file) != expected[file.name]:
+                  raise RuntimeError("El ejecutable no coincide con SHA256SUMS: " + file.name)
+              if file.stat().st_size < 20 * 1024 * 1024 or file.open("rb").read(2) != b"MZ":
+                  raise RuntimeError("Ejecutable faltante o truncado: " + file.name)
+          if sha(portable) != build["artifacts"][0].get("sha256"):
+              raise RuntimeError("Portable distinto al aceptado por Windows.")
+          if sha(setup) != setup_report.get("exe", {}).get("sha256"):
+              raise RuntimeError("Setup distinto al generado por el release gate.")
+          source_parts = codehash.read_text("ascii").strip().split()
+          if len(source_parts) != 2 or source_parts[0].lower() != sha(code) or source_parts[1] != code.name:
+              raise RuntimeError("Código fuente no coincide con su suma SHA256.")
+          for file in (portable, setup, sums, code, codehash):
+              shutil.copy2(file, output / file.name)
+              print("RELEASE ACCEPTED:", file.name, file.stat().st_size)
+          PY
+
+      - name: Publicar en GitHub Releases con tag inmutable
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view v1.7.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release ya creada. No se alteran sus binarios."
+            exit 0
+          fi
+          gh release create v1.7.0 release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$RELEASE_SHA" \
+            --title "PhœnixForge v1.7.0 — Primera versión estable (Windows x64)" \
+            --notes-file docs/RELEASE_1.7.0.md \
+            --latest
+          gh release view v1.7.0 --repo "$GITHUB_REPOSITORY" \
+            --json url,assets,tagName \
+            --jq '{url,tag: .tagName,assets: [.assets[].name]}'
