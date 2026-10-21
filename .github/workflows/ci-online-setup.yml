@@ -1,7 +1,9 @@
 name: PhoenixForge | Online Setup smoke tests
 on:
   push:
-    branches: [feature/verified-online-setup]
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
