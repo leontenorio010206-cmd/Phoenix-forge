@@ -31,7 +31,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Install Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
       - name: Android SDK 35
         shell: bash
         run: |
