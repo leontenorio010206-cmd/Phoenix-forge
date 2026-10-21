@@ -125,12 +125,17 @@ def verify(executable, output):
             notify(stage)
             child_dir = output/('launch-%d' % n)
             before = time.monotonic()
-            result = subprocess.run(
-                [str(copied.resolve()), '--self-test', str(child_dir.resolve()),
-                 '--require-bundled'],
-                env=environment, cwd=str(output), timeout=180, shell=False,
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            (output/('launch-%d-console.log' % n)).write_bytes(result.stdout or b'')
+            # PyInstaller onefile spawns a second process. stdout=PIPE may stay
+            # open in that child after its parent is killed on timeout, hanging
+            # communicate() indefinitely on Windows. A real file is bounded.
+            console_path = output / ('launch-%d-console.log' % n)
+            with console_path.open('wb') as console:
+                result = subprocess.run(
+                    [str(copied.resolve()), '--self-test', str(child_dir.resolve()),
+                     '--require-bundled'],
+                    env=environment, cwd=str(output), timeout=180, shell=False,
+                    stdout=console, stderr=subprocess.STDOUT)
+            notify(stage + '_exit_' + str(result.returncode))
             acceptance = child_dir/'acceptance.json'
             if result.returncode:
                 detail = ''
