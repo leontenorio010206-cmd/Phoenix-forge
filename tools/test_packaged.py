@@ -26,10 +26,17 @@ def normal_launch(executable, environment, notify=lambda stage: None):
     user.GetWindowThreadProcessId.argtypes = [T.HWND, ctypes.POINTER(T.DWORD)]
     user.IsWindowVisible.argtypes = [T.HWND]
     user.PostMessageW.argtypes = [T.HWND, T.UINT, T.WPARAM, T.LPARAM]
+    # Win32 BOOL/HANDLE signatures must be explicit on x64; otherwise handles can be truncated.
+    user.EnumWindows.restype = T.BOOL
+    user.GetWindowThreadProcessId.restype = T.DWORD
+    user.IsWindowVisible.restype = T.BOOL
+    user.PostMessageW.restype = T.BOOL
     kernel.OpenProcess.argtypes = [T.DWORD, T.BOOL, T.DWORD]
     kernel.OpenProcess.restype = T.HANDLE
     kernel.QueryFullProcessImageNameW.argtypes = [T.HANDLE, T.DWORD, T.LPWSTR, ctypes.POINTER(T.DWORD)]
+    kernel.QueryFullProcessImageNameW.restype = T.BOOL
     kernel.CloseHandle.argtypes = [T.HANDLE]
+    kernel.CloseHandle.restype = T.BOOL
     found = []
     def inspect(hwnd, unused):
         if not user.IsWindowVisible(hwnd):
