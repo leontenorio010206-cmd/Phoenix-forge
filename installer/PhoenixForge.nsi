@@ -47,6 +47,9 @@ Section "PhœnixForge (obligatorio)" Main
  File /oname=PhoenixForge.exe "${PF_ROOT}\dist\PhoenixForge_v1.7.0_Portable.exe"
  File "${PF_ROOT}\LICENSE"
  File "${PF_ROOT}\THIRD_PARTY_NOTICES.md"
+ SetOutPath "$INSTDIR\installer"
+ File "${PF_ROOT}\installer\install_optional.ps1"
+ File "${PF_ROOT}\installer\optional-components.json"
  SetOutPath "$INSTDIR\docs"
  File /r "${PF_ROOT}\docs\*.*"
  SetOutPath "$INSTDIR\licenses"
@@ -64,6 +67,26 @@ Section "PhœnixForge (obligatorio)" Main
  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\PhoenixForge" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\PhoenixForge" "NoModify" 1
  WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\PhoenixForge" "NoRepair" 1
+SectionEnd
+
+# Official optional packages are downloaded only if the user checks these sections.
+# All installs are scoped to the app's per-user directory; no UAC or global PATH edits.
+Section /o "Java Eclipse Temurin 21 (opcional para Digital)" JavaRuntime
+ DetailPrint "Descargando Java verificado; no se modifica el Java global."
+ nsExec::ExecToLog '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$INSTDIR\installer\install_optional.ps1" -Component java -InstallDir "$INSTDIR"'
+ Pop $R0
+ ${If} $R0 != 0
+  MessageBox MB_ICONEXCLAMATION "No se pudo preparar Java (código $R0). PhœnixForge está instalado. Consulte el registro."
+ ${EndIf}
+SectionEnd
+
+Section /o "Digital v0.31 — simulador GPLv3 (opcional)" DigitalSimulator
+ DetailPrint "Descargando Digital oficial, comprobando SHA256 y licencia GPLv3."
+ nsExec::ExecToLog '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$INSTDIR\installer\install_optional.ps1" -Component digital -InstallDir "$INSTDIR"'
+ Pop $R0
+ ${If} $R0 != 0
+  MessageBox MB_ICONEXCLAMATION "No se pudo preparar Digital (código $R0). PhœnixForge está instalado. Consulte el registro."
+ ${EndIf}
 SectionEnd
 
 Section /o "Acceso directo en el escritorio" Desktop
@@ -84,6 +107,8 @@ Section "Uninstall"
  RMDir /r "$INSTDIR\docs"
  RMDir /r "$INSTDIR\licenses"
  RMDir /r "$INSTDIR\sources"
+ RMDir /r "$INSTDIR\installer"
+ # The user-owned optional Integrations directory is preserved on uninstall.
  RMDir "$INSTDIR"
  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\PhoenixForge"
 SectionEnd

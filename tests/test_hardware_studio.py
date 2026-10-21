@@ -28,18 +28,42 @@ def test_device_attach_detection_without_auto_install():
     assert discovery.added_devices(old, found) == found[1:]
 
 
-def test_windows_pnp_json_and_pico_volume(monkeypatch):
+def test_windows_pnp_json_and_pico_volume(monkeypatch, tmp_path):
     monkeypatch.setattr(discovery.sys, "platform", "win32")
+    ps = tmp_path / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    ps.parent.mkdir(parents=True)
+    ps.touch()
+    monkeypatch.setenv("SystemRoot", str(tmp_path))
     payloads = [
         [{"Name": "Arduino Uno (COM5)", "PNPDeviceID": r"USB\VID_2341&PID_0043\A", "Status": "OK"}],
         [{"VolumeName": "RPI-RP2", "DeviceID": "E:"}]
     ]
     def fake_runner(cmd, **kwargs):
-        assert cmd[0] == "powershell.exe" and kwargs["timeout"] <= 12
+        assert Path(cmd[0]) == ps and kwargs["timeout"] <= 12
         return subprocess.CompletedProcess(cmd, 0, json.dumps(payloads.pop(0)), "")
     found = discovery.list_usb_devices(fake_runner)
     assert {d.kind for d in found} == {"Arduino", "Pico UF2"}
     assert any(d.port == "E:\\" for d in found)
+
+def test_missing_windows_powershell_fails_fast_without_shell_fallback(monkeypatch, tmp_path):
+    monkeypatch.setattr(discovery.sys, "platform", "win32")
+    monkeypatch.setenv("SystemRoot", str(tmp_path))
+    calls = []
+    with pytest.raises(FileNotFoundError, match="Windows PowerShell"):
+        discovery._ps(discovery.DEVICES_PS, runner=lambda *a, **k: calls.append(a))
+    assert not calls
+
+def test_hardware_scan_errors_are_visible_without_modal_dialog(qt_app, monkeypatch):
+    from app.ui.hardware_studio import HardwareStudio
+    panel = HardwareStudio()
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Unattended hardware scan opened a modal dialog")
+    monkeypatch.setattr("app.ui.hardware_studio.W.QMessageBox.warning", forbidden)
+    panel._failed("Windows PowerShell missing")
+    assert "Windows PowerShell missing" in panel.log.toPlainText()
+    assert "Error de hardware" in panel.status.text()
+    panel.timer.stop()
+    panel.close()
 
 
 def test_cli_install_pinned_checksum(tmp_path, monkeypatch):

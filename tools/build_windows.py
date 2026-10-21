@@ -47,7 +47,7 @@ def main():
         environment = os.environ.copy()
         environment['PHOENIXFORGE_QT'] = 'pyside6'
         environment['QT_QPA_PLATFORM'] = 'windows'
-        invoke([sys.executable, '-m', 'pytest', '-q', '-m', 'not packaged',
+        invoke([sys.executable, '-m', 'pytest', '-vv', '--maxfail=1', '-m', 'not packaged',
                 '--junitxml=build/windows-tests.xml'], environment)
         result = ET.parse(str(ROOT / 'build/windows-tests.xml'))
         suites = list(result.iter('testsuite'))
@@ -61,7 +61,11 @@ def main():
                 'build/PhoenixForge.spec'], environment)
         artifact = inspect_pe(portable, minimum_size=20*1024*1024)
         report['artifacts'].append(artifact)
-        acceptance = verify(portable, ROOT / 'build/packaged-acceptance')
+        print('Build completed. Starting independent frozen-EXE acceptance watchdog (10 min maximum).', flush=True)
+        subprocess.run([sys.executable, '-u', str(ROOT / 'tools/test_packaged.py'),
+                        str(portable), '--output', str(ROOT / 'build/packaged-acceptance')],
+                       cwd=str(ROOT), env=environment, check=True, timeout=600)
+        acceptance = json.loads((ROOT / 'build/packaged-acceptance/packaged-acceptance.json').read_text(encoding='utf-8'))
         report['native_acceptance'] = acceptance
         if not acceptance.get('ordinary_startup') or len(acceptance.get('launches', [])) != 2:
             raise RuntimeError('Faltan arranque normal y dos pruebas del EXE congelado')

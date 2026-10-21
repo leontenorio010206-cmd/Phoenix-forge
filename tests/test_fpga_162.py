@@ -17,8 +17,12 @@ def test_probe_vendor_identification_is_not_chip_detection():
     assert fpga.cable_hint("Unknown", r"USB\VID_1234&PID_7777\TEST")[0] == "No identificado"
 
 
-def test_driver_report_reads_only_exact_interface_and_does_not_change_driver(monkeypatch):
+def test_driver_report_reads_only_exact_interface_and_does_not_change_driver(monkeypatch, tmp_path):
     monkeypatch.setattr(fpga.sys, "platform", "win32")
+    ps = tmp_path / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    ps.parent.mkdir(parents=True, exist_ok=True)
+    ps.touch()
+    monkeypatch.setenv("SystemRoot", str(tmp_path))
     identity = r"USB\VID_09FB&PID_6001&MI_00\TOKEN"
     calls = []
     payloads = [
@@ -40,8 +44,12 @@ def test_driver_report_reads_only_exact_interface_and_does_not_change_driver(mon
     assert all("Get-CimInstance" in call[-1] for call in calls)
 
 
-def test_driver_reports_problem_code(monkeypatch):
+def test_driver_reports_problem_code(monkeypatch, tmp_path):
     monkeypatch.setattr(fpga.sys, "platform", "win32")
+    ps = tmp_path / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    ps.parent.mkdir(parents=True, exist_ok=True)
+    ps.touch()
+    monkeypatch.setenv("SystemRoot", str(tmp_path))
     identity = r"USB\VID_0403&PID_6010\FOO"
     import json
     payloads = [[{"DeviceID": identity, "DriverProviderName": "FTDI"}],

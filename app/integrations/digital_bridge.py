@@ -157,8 +157,71 @@ def port_config(project, top=None):
     return {"etiqueta": doc["top"], **fields, "aplicacion": "IVerilog"}
 
 
-def locate_java():
+
+_OPTIONAL_COMPONENTS = {
+    "digital": ("Digital-v0.31", "digital.jar",
+                "12f014c8b99140554f8f7464ebc771bbe3de6af39c83c20463492bcb892afc69"),
+    "java": ("Temurin-JRE21", "javaw.exe",
+             "d35f31e712f0fcf6ac5a093edc90204fbff22f720ba3950bd09d331d5e621636"),
+}
+
+
+def _installed_roots():
+    """PyInstaller's EXE directory and default NSIS install root (per-user)."""
+    roots = [Path(sys.executable).resolve().parent / "Integrations"]
+    if os.name == "nt":
+        local = os.environ.get("LOCALAPPDATA")
+        if local:
+            roots.append(Path(local) / "Programs" / "PhoenixForge" / "Integrations")
+    return roots
+
+
+def _receipt_binary(kind, root):
+    """Recognize only a package with an installer receipt and pinned source hash."""
+    folder, filename, archive_hash = _OPTIONAL_COMPONENTS[kind]
+    directory = Path(root) / folder
+    receipt = directory / "phoenixforge-component.json"
+    if not receipt.is_file() or receipt.is_symlink():
+        return None
+    try:
+        info = json.loads(receipt.read_text(encoding="utf-8-sig"))
+        rel = info["relative_path"]
+        if not isinstance(rel, str):
+            return None
+        # Windows PowerShell writes relative_path using backslashes; both forms
+        # must be accepted, but no absolute paths or traversal are permitted.
+        normalized = rel.replace("\\", "/")
+        if (info["component"] != kind or info["archive_sha256"] != archive_hash
+                or len(normalized) > 400 or ":" in normalized
+                or normalized.startswith("/") or "\x00" in normalized
+                or any(p in ("", ".", "..") for p in normalized.split("/"))):
+            return None
+        binary = directory.joinpath(*normalized.split("/"))
+        if (binary.name.lower() != filename or not binary.is_file()
+                or binary.is_symlink() or not binary.resolve().is_relative_to(directory.resolve())):
+            return None
+        if hashlib.sha256(binary.read_bytes()).hexdigest() != info["file_sha256"]:
+            return None
+        return str(binary)
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def locate_installed_digital(roots=None):
+    for root in (_installed_roots() if roots is None else roots):
+        candidate = _receipt_binary("digital", root)
+        if candidate:
+            return candidate
+    return None
+
+
+def locate_java(roots=None):
+    for root in (_installed_roots() if roots is None else roots):
+        candidate = _receipt_binary("java", root)
+        if candidate:
+            return candidate
     return shutil.which("javaw") or shutil.which("java")
+
 
 
 def launch_digital(digital_jar, icarus_dir, java=None, popen=subprocess.Popen):
