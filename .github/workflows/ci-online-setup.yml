@@ -26,7 +26,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tools/build_setup_windows.py --help
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python -m pytest tests/test_online_setup.py -q
+          python -m pytest tests/test_online_setup.py tests/test_public_release_docs.py -q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Check PowerShell parser and optional manifests
         shell: pwsh
