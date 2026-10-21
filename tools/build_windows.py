@@ -61,7 +61,11 @@ def main():
                 'build/PhoenixForge.spec'], environment)
         artifact = inspect_pe(portable, minimum_size=20*1024*1024)
         report['artifacts'].append(artifact)
-        acceptance = verify(portable, ROOT / 'build/packaged-acceptance')
+        print('Build completed. Starting independent frozen-EXE acceptance watchdog (10 min maximum).', flush=True)
+        subprocess.run([sys.executable, '-u', str(ROOT / 'tools/test_packaged.py'),
+                        str(portable), '--output', str(ROOT / 'build/packaged-acceptance')],
+                       cwd=str(ROOT), env=environment, check=True, timeout=600)
+        acceptance = json.loads((ROOT / 'build/packaged-acceptance/packaged-acceptance.json').read_text(encoding='utf-8'))
         report['native_acceptance'] = acceptance
         if not acceptance.get('ordinary_startup') or len(acceptance.get('launches', [])) != 2:
             raise RuntimeError('Faltan arranque normal y dos pruebas del EXE congelado')
