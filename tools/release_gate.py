@@ -2,6 +2,14 @@
 import argparse
 import json
 from pathlib import Path
+import sys
+
+# Running `python tools/release_gate.py` puts tools/ (not the repository
+# root) on sys.path on Windows. Use the same stable import root as the
+# Windows builder so the release gate works both as script and module.
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from tools.verify_artifact import inspect_pe
 
