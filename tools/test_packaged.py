@@ -14,7 +14,7 @@ except ModuleNotFoundError:
     from verify_artifact import inspect_pe
 
 
-def normal_launch(executable, environment):
+def normal_launch(executable, environment, notify=lambda stage: None):
     """Observe the ordinary no-argument window through the Windows desktop API."""
     import ctypes
     from ctypes import wintypes as T
@@ -47,7 +47,9 @@ def normal_launch(executable, environment):
                 kernel.CloseHandle(handle)
         return True
     callback = callback_type(inspect)
+    notify('ordinary_gui_spawn_begin')
     child = subprocess.Popen([str(executable)], env=environment, cwd=str(executable.parent), shell=False)
+    notify('ordinary_gui_spawned_pid_' + str(child.pid))
     try:
         deadline = time.monotonic() + 90
         while time.monotonic() < deadline and child.poll() is None:
@@ -56,7 +58,8 @@ def normal_launch(executable, environment):
                 break
             time.sleep(.1)
         if not found:
-            raise RuntimeError('Ordinary startup produced no visible native window')
+            raise RuntimeError('Ordinary startup produced no visible native window after 90 seconds; child return code ' + str(child.poll()))
+        notify('ordinary_gui_window_detected')
         user.PostMessageW(found[0], 0x0010, 0, 0)  # WM_CLOSE, normal application cleanup
         if child.wait(timeout=30) != 0:
             raise RuntimeError('Ordinary startup/close returned an error')
@@ -78,6 +81,14 @@ def verify(executable, output):
     if hasattr(ctypes.WinDLL('ntdll'), 'wine_get_version'):
         raise RuntimeError('Wine is not native Windows acceptance')
     output.mkdir(parents=True, exist_ok=True)
+    started = time.monotonic()
+    progress = output / 'acceptance-progress.log'
+    def notify(stage):
+        line = '[+%.1fs] %s\n' % (time.monotonic() - started, stage)
+        print('[packaged acceptance] ' + line.strip(), flush=True)
+        with progress.open('a', encoding='utf-8') as stream:
+            stream.write(line)
+    notify('begin_real_frozen_acceptance')
     stage = 'environment'
     report = {'artifact': artifact, 'passed': False, 'stage': stage}
     copied = None
@@ -98,14 +109,17 @@ def verify(executable, output):
         environment['TEMP'] = environment['TMP'] = str(temporary.resolve())
         environment['PHOENIXFORGE_DATA'] = str((folder / 'user-data').resolve())
         stage = 'ordinary_gui_startup'
+        notify(stage)
         before = time.monotonic()
-        ordinary = normal_launch(copied.resolve(), environment)
+        ordinary = normal_launch(copied.resolve(), environment, notify=notify)
         gui_seconds = round(time.monotonic()-before, 2)
         report['ordinary_gui_seconds'] = gui_seconds
         report['ordinary_startup'] = ordinary
+        notify('ordinary_gui_success_%.1fs' % gui_seconds)
         reports=[]
         for n in (1,2):
             stage = 'frozen_hdl_acceptance_' + str(n)
+            notify(stage)
             child_dir = output/('launch-%d' % n)
             before = time.monotonic()
             result = subprocess.run(
@@ -132,6 +146,7 @@ def verify(executable, output):
                 raise RuntimeError('Packaged native acceptance requirements not met: ' + str(child_report))
             child_report['launch_duration_seconds'] = round(time.monotonic()-before, 2)
             reports.append(child_report)
+            notify(stage + '_success')
         stage = 'success'
         final = {
             'artifact': artifact,
@@ -143,8 +158,10 @@ def verify(executable, output):
         }
         (output/'packaged-acceptance.json').write_text(json.dumps(final,indent=2),encoding='utf-8')
         report.update({'passed':True,'stage':'success'})
+        notify('all_acceptance_passed')
         return final
     except Exception as error:
+        notify('FAILED_' + stage + '_' + str(error)[:120])
         report['stage'] = stage
         report['error'] = str(error)
         report['traceback'] = traceback.format_exc()
