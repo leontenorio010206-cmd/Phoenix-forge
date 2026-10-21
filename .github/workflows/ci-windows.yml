@@ -39,6 +39,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Force -Path build | Out-Null
           python -m pip freeze | Out-File -Encoding utf8 build/python-packages.txt
+      - name: Verificación temprana de sintaxis Python
+        shell: pwsh
+        run: |
+          python -m compileall -q app tools tests
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Preparar MSYS2 / MinGW
         uses: msys2/setup-msys2@v2
         with:
