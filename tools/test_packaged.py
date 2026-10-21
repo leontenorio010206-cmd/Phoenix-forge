@@ -8,6 +8,7 @@ import sys
 import shutil
 import time
 import traceback
+import faulthandler
 try:
     from tools.verify_artifact import inspect_pe
 except ModuleNotFoundError:
@@ -89,6 +90,8 @@ def verify(executable, output):
         with progress.open('a', encoding='utf-8') as stream:
             stream.write(line)
     notify('begin_real_frozen_acceptance')
+    diagnostic_stream = (output / 'acceptance-python-stack.log').open('a', encoding='utf-8')
+    faulthandler.dump_traceback_later(120, repeat=True, file=diagnostic_stream)
     stage = 'environment'
     report = {'artifact': artifact, 'passed': False, 'stage': stage}
     copied = None
@@ -167,6 +170,8 @@ def verify(executable, output):
         report['traceback'] = traceback.format_exc()
         raise
     finally:
+        faulthandler.cancel_dump_traceback_later()
+        diagnostic_stream.close()
         if copied is not None and copied.exists():
             copied.unlink()
         (output/'packaged-status.json').write_text(
