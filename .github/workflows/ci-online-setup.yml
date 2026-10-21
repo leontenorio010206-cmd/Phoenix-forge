@@ -18,6 +18,7 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install pytest==8.3.5
+          python -m py_compile app/acceptance.py tools/test_packaged.py tools/build_windows.py
           python -m pytest tests/test_online_setup.py -q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Check PowerShell parser and optional manifests
