@@ -602,9 +602,12 @@ class HardwareStudio(W.QWidget):
         self.status.setText(title + " · terminado")
 
     def _failed(self, reason):
-        self.log.appendPlainText("ERROR: " + reason[:1800])
-        self.status.setText("Error en operación de hardware")
-        W.QMessageBox.warning(self, "Hardware Studio", reason[:1200])
+        # USB polling is background work. Never create a modal message box from
+        # an asynchronous hardware scan: it can block unattended Windows CI and
+        # annoy users whenever a USB interface is temporarily unavailable.
+        # Keep the failure visible in the status and diagnostic log instead.
+        self.log.appendPlainText("ERROR de hardware: " + reason[:1800])
+        self.status.setText("Error de hardware · revisa el registro")
 
     def _cleanup_worker(self, task):
         if self.worker is task:
