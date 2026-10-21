@@ -130,12 +130,36 @@ def verify(executable, output):
             # communicate() indefinitely on Windows. A real file is bounded.
             console_path = output / ('launch-%d-console.log' % n)
             with console_path.open('wb') as console:
-                result = subprocess.run(
+                child = subprocess.Popen(
                     [str(copied.resolve()), '--self-test', str(child_dir.resolve()),
                      '--require-bundled'],
-                    env=environment, cwd=str(output), timeout=180, shell=False,
+                    env=environment, cwd=str(output), shell=False,
                     stdout=console, stderr=subprocess.STDOUT)
-            notify(stage + '_exit_' + str(result.returncode))
+                notify(stage + '_pid_' + str(child.pid))
+                try:
+                    status = child.wait(timeout=180)
+                except subprocess.TimeoutExpired:
+                    notify(stage + '_timeout_killing_process_tree')
+                    # PyInstaller --onefile has a bootloader parent and Python child.
+                    # Kill precisely the process subtree owned by this invocation,
+                    # never all running PhœnixForge installations.
+                    import subprocess as sp
+                    taskkill = Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32/taskkill.exe'
+                    if taskkill.is_file():
+                        sp.run([str(taskkill), '/PID', str(child.pid), '/T', '/F'],
+                               timeout=30, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+                    if child.poll() is None:
+                        child.kill()
+                    try:
+                        child.wait(timeout=15)
+                    except subprocess.TimeoutExpired:
+                        notify(stage + '_process_tree_still_running')
+                    # The frozen child writes stage-events.log and Python stacks
+                    # directly. Both are retained in the failed CI artifact.
+                    raise RuntimeError('Frozen GUI self-test exceeded 180 seconds; inspect '
+                        + str(child_dir / 'stage-events.log') + ' and frozen-python-stacks.log')
+                result = child
+                        notify(stage + '_exit_' + str(result.returncode))
             acceptance = child_dir/'acceptance.json'
             if result.returncode:
                 detail = ''
@@ -178,7 +202,17 @@ def verify(executable, output):
         faulthandler.cancel_dump_traceback_later()
         diagnostic_stream.close()
         if copied is not None and copied.exists():
-            copied.unlink()
+            for attempt in range(10):
+                try:
+                    copied.unlink()
+                    break
+                except PermissionError:
+                    if attempt == 9:
+                        notify('cleanup_warning_exe_still_locked_' + str(copied))
+                        if report.get('passed'):
+                            raise RuntimeError('Packaged acceptance passed but the EXE remained locked')
+                    else:
+                        time.sleep(.3)
         (output/'packaged-status.json').write_text(
             json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
 
