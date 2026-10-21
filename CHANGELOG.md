@@ -1,3 +1,11 @@
+## 1.7.0 — Estabilidad, diagnóstico y portátil Windows
+- Se elimina la generación automática de EXE experimentales cuando falla la aceptación estricta.
+- Validación nativa obligatoria: cero pruebas fallidas/omitidas, dos autopruebas congeladas con Icarus y arranque GUI real, con verificación de checksum y rechazo de binarios no aprobados.
+- Reporte de fallos del EXE con etapas, JSON, capturas y logs conservados incluso al fallar.
+- Ajuste de ventana y pantalla inicial para portátiles pequeños y suspensión del sondeo USB al ocultar Hardware Studio.
+- Inventario de tamaños para optimizar con mediciones sin retirar Icarus, Qt, bibliotecas ni materiales correspondientes a licencias.
+- La estabilidad en Windows 10 real y compatibilidad de placas físicas requieren validación aparte. Windows 7 y equipos de 32 bits no están certificados.
+
 ## 1.6.2 — FPGA / Drivers Hardware Studio
 - Detección de interfaces USB de programadores y diagnóstico de driver Windows real (proveedor, INF, servicio, versión, problema PnP), sin modificaciones automáticas.
 - Catálogo de placas, programadores y familias consultado dinámicamente desde openFPGALoader; atajos a Gowin Tang Nano, QMTech Cyclone, Lattice, Digilent y Efinix.

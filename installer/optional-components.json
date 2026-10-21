@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "components": {
+    "digital": {
+      "version": "0.31",
+      "folder": "Digital-v0.31",
+      "url": "https://github.com/hneemann/Digital/releases/download/v0.31/Digital.zip",
+      "sha256": "12f014c8b99140554f8f7464ebc771bbe3de6af39c83c20463492bcb892afc69",
+      "bytes": 12689882,
+      "max_expanded_bytes": 180000000,
+      "expected": "Digital.jar",
+      "license": "GPL-3.0-or-later",
+      "source": "https://github.com/hneemann/Digital",
+      "max_entries": 1500
+    },
+    "java": {
+      "version": "21.0.12.1+1",
+      "folder": "Temurin-JRE21",
+      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_windows_hotspot_21.0.12.1_1.zip",
+      "sha256": "d35f31e712f0fcf6ac5a093edc90204fbff22f720ba3950bd09d331d5e621636",
+      "bytes": 48999141,
+      "max_expanded_bytes": 260000000,
+      "expected": "javaw.exe",
+      "license": "GPL-2.0-with-Classpath-exception",
+      "source": "https://adoptium.net/",
+      "max_entries": 2500
+    }
+  }
+}

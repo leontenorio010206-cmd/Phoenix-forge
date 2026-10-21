@@ -94,7 +94,8 @@ class HardwareStudio(W.QWidget):
         self.timer = C.QTimer(self)
         self.timer.setInterval(8000)
         self.timer.timeout.connect(self.automatic_scan)
-        self.timer.start()
+        # Do not poll a hidden panel for the entire lifetime of the application.
+        # The first scan starts when Hardware Studio is opened.
 
     def _make_arduino(self):
         page = W.QWidget()
@@ -568,7 +569,14 @@ class HardwareStudio(W.QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        self.scan()
+        if not self.timer.isActive():
+            self.timer.start()
+        if self.worker is None:
+            self.scan()
+
+    def hideEvent(self, event):
+        self.timer.stop()
+        super().hideEvent(event)
 
     def automatic_scan(self):
         if self.isVisible() and self.worker is None:
@@ -594,9 +602,12 @@ class HardwareStudio(W.QWidget):
         self.status.setText(title + " · terminado")
 
     def _failed(self, reason):
-        self.log.appendPlainText("ERROR: " + reason[:1800])
-        self.status.setText("Error en operación de hardware")
-        W.QMessageBox.warning(self, "Hardware Studio", reason[:1200])
+        # USB polling is background work. Never create a modal message box from
+        # an asynchronous hardware scan: it can block unattended Windows CI and
+        # annoy users whenever a USB interface is temporarily unavailable.
+        # Keep the failure visible in the status and diagnostic log instead.
+        self.log.appendPlainText("ERROR de hardware: " + reason[:1800])
+        self.status.setText("Error de hardware · revisa el registro")
 
     def _cleanup_worker(self, task):
         if self.worker is task:

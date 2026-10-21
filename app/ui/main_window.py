@@ -44,8 +44,15 @@ class MainWindow(W.QMainWindow, ProjectActions):
     def __init__(self):
         super().__init__()
         self.setWindowIcon(G.QIcon(str(assets_dir() / "phoenix.svg")))
-        self.resize(1380, 900)
-        self.setMinimumSize(1000, 680)
+        # Fit small laptop screens without hard-coding a large desktop viewport.
+        screen = W.QApplication.primaryScreen()
+        if screen:
+            available = screen.availableGeometry()
+            self.resize(min(1280, max(840, available.width() - 45)),
+                        min(820, max(540, available.height() - 45)))
+        else:
+            self.resize(1100, 720)
+        self.setMinimumSize(840, 540)
         self.setStyleSheet(STYLE)
         self.project = Project()
         self.project_path = None
@@ -73,7 +80,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.navigation.setObjectName("Navigation")
         self.navigation.addItems(["Inicio", "Estudio HDL", "Dispositivos FPGA", "Proyectos de muestra", "Exportar a Digital", "Hardware Studio", "Plugins", "Configuración"])
         side.addWidget(self.navigation, 1)
-        build = label("   v%s  /  %s\n   RTL · Sin programación física" % (__version__, BINDING), "Muted")
+        build = label("   v%s  /  %s\n   RTL + Hardware Studio" % (__version__, BINDING), "Muted")
         build.setStyleSheet("font-size: 10px; color: #7f94ad;")
         side.addWidget(build)
         shell.addWidget(sidebar)
@@ -99,7 +106,12 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.update_tool_status()
 
     def make_home(self):
+        # The three launch cards may overflow 1024x600 laptops: scroll, don't clip.
+        page = W.QScrollArea()
+        page.setWidgetResizable(True)
+        page.setFrameShape(W.QFrame.NoFrame)
         widget = W.QWidget()
+        page.setWidget(widget)
         layout = W.QVBoxLayout(widget)
         layout.setContentsMargins(46, 42, 46, 34)
         layout.setSpacing(18)
@@ -131,7 +143,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         layout.addWidget(note)
         self.engine_status = label("", "Muted", True)
         layout.addWidget(self.engine_status)
-        return widget
+        return page
 
     def connect_actions(self):
         self.studio.source_changed.connect(self.source_changed)

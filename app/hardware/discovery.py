@@ -1,5 +1,7 @@
 """Read-only Windows hardware discovery. Detection is heuristic, never a driver installer."""
 import json
+import os
+from pathlib import Path
 import re
 import subprocess
 import sys
@@ -75,7 +77,14 @@ def _parse_json(stream):
 def _ps(command, runner=subprocess.run):
     if sys.platform != "win32":
         return []
-    process = runner(["powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive",
+    # PATH is deliberately restricted during frozen-EXE acceptance and may be
+    # customized by end users. Windows PowerShell lives outside System32 root;
+    # resolve the exact OS component rather than trusting PATH or a shim.
+    system_root = Path(os.environ.get("SystemRoot", r"C:\\Windows"))
+    ps = system_root / "System32" / "WindowsPowerShell" / "v1.0" / "powershell.exe"
+    if not ps.is_file():
+        raise FileNotFoundError("No se encontró Windows PowerShell del sistema: " + str(ps))
+    process = runner([str(ps), "-NoLogo", "-NoProfile", "-NonInteractive",
                       "-Command", command],
                      capture_output=True, text=True, timeout=12, check=False)
     if process.returncode:

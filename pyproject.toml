@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "PhoenixForge"
-version = "1.6.2"
+version = "1.7.0"
 description = "Forge Digital Logic: desktop Verilog and FPGA educational laboratory"
 readme = "README.md"
 requires-python = ">=3.8,<3.14"

@@ -1,18 +1,25 @@
-# Estado de la distribución — v1.1.0
+# Estado de distribución — PhœnixForge 1.7.0
 
-**Proyecto fuente preparado para compilación de Windows.** Esta revisión integra una corrección del filtro de DLL de Qt que bloqueaba PyInstaller al encontrar `Qt6Network.dll`. Esta corrección no valida por sí misma el arranque final ni los motores HDL.
+## Primera versión estable (criterio de CI)
 
-## Resultados conocidos
+La v1.7.0 es la **primera edición de PhœnixForge que pasó las pruebas estrictas de Windows** configuradas para el proyecto. Esto significa que el ejecutable real compiló en Windows Server 2022, ejecutó una suite de pruebas de código, inició su interfaz y superó pruebas del programa empaquetado con el simulador Icarus incluido.
 
-- Ejecutadas en un entorno Linux con Python 3.13: **58 pruebas superadas; 8 omitidas** porque faltan PySide6, Icarus o un `.exe` de Windows.
-- Históricamente se consiguió abrir una versión local del programa y usar el simulador interno de semáforos en Windows 10.
-- La simulación HDL desde un `.exe` local mostró errores de rutas y requiere una validación específica antes de anunciarse como funcional.
-- No se ha validado Windows 7 ni la programación física de FPGA.
+**Última compilación aceptada verificada:** [Windows 1.7 · GitHub Actions #39528870746](https://github.com/leontenorio010206-cmd/Phoenix-forge/actions/runs/39528870746). Descarga el artefacto `PhoenixForge-Windows-v1.7-VALIDADO-CI`, que debe contener Setup.exe, Portable.exe y sumas SHA-256.
 
-## Etiquetado de artefactos
+No equivale a una certificación de Windows 10/11 en hardware físico. Están pendientes pruebas de campo de consumo RAM, compatibilidad con antivirus y discos lentos, uso de placas FPGA reales y sistemas Windows 7.
 
-- `PhoenixForge_v1.1.0_Portable.exe`: se publica como verificado por CI solo si las pruebas del proyecto y la aceptación nativa de Windows terminan correctamente.
-- `PhoenixForge_v1.1.0_Portable_EXPERIMENTAL.exe`: puede generarse si la suite falla; **no está verificado** y puede tener funciones rotas.
-- Los hashes SHA-256 acreditan integridad respecto del archivo descargado; no sustituyen firma de código ni pruebas en equipos reales.
+## Versiones anteriores y distinción
 
-Para errores reproducibles, adjunta los informes `windows-build-report.json` y `windows-tests.xml` publicados en Actions.
+La información de la entrega **1.1.0 experimental** en este documento quedó superada por la puerta de aceptación estricta de la v1.7.0. No deben descargarse ni presentarse como estables binarios llamados `EXPERIMENTAL`.
+
+La versión 1.7 elimina el mecanismo de publicación de EXE experimentales cuando la aceptación falla.
+
+## Legal, independencia y créditos
+
+Código original MIT © Leonardo Antonio Hernández Tenorio, **cocreador y mantenedor**. Agradecemos a [Digital, de Helmut Neemann](https://github.com/hneemann/Digital) (GPLv3). Digital se utiliza como programa externo e instalación opcional; no es nuestro código ni patrocina este proyecto.
+
+Consulta [LEGAL.md](../LEGAL.md), [CREDITS.md](../CREDITS.md), [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) y [notas de la primera estable](RELEASE_1.7.0.md).
+
+## Publicación del repositorio
+
+El artefacto aprobado en CI puede existir aunque el repositorio siga siendo privado. Antes de abrirlo al público debe revisarse TODO el historial Git, incluidos paquetes binarios anteriormente versionados, tal como explica [PUBLIC_RELEASE_CHECKLIST.md](PUBLIC_RELEASE_CHECKLIST.md).

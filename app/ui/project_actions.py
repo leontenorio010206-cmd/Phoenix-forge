@@ -10,7 +10,7 @@ from app.core.examples import adder_project, clock_project
 from app.exporters.bundle import export_bundle
 from app.exporters.digital_hdl import export_digital_component
 from app.integrations.digital_bridge import (export_unpacked_component, launch_digital,
-    port_config, prepare_icarus_for_digital)
+    port_config, prepare_icarus_for_digital, locate_installed_digital)
 from app.utils.paths import safe_relative, user_projects_dir
 
 
@@ -214,6 +214,8 @@ class ProjectActions:
         settings = C.QSettings("PhoenixForge", "DigitalBridge")
         jar = settings.value("digital_jar", "", type=str)
         if not jar or not Path(jar).is_file():
+            jar = locate_installed_digital() or ""
+        if not jar:
             jar, _ = W.QFileDialog.getOpenFileName(
                 self, "Selecciona tu Digital.jar ya descomprimido",
                 str(Path.home() / "Downloads"), "Digital Java (Digital.jar)")

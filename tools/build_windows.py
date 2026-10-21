@@ -27,14 +27,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--makensis', help='NSIS 3.11 makensis.exe path; auto-detected if omitted')
     parser.add_argument('--portable-only', action='store_true')
-    parser.add_argument('--experimental-preview', action='store_true',
-                        help='Build an explicitly unverified preview; do not run release acceptance')
     args = parser.parse_args()
-    report = {'version': '1.6.2', 'utc': datetime.now(timezone.utc).isoformat(),
+    report = {'version': '1.7.0', 'utc': datetime.now(timezone.utc).isoformat(),
               'host': platform.platform(), 'python': platform.python_version(),
               'success': False, 'artifacts': [], 'clean_vm_verified': False,
               'installer_installation_verified': False, 'release_acceptance_complete': False,
-              'validation_status': 'experimental_unverified' if args.experimental_preview else 'pending'}
+              'validation_status': 'pending'}
     try:
         if sys.platform != 'win32':
             raise RuntimeError('BLOCKED: build requires native Windows x64; this host is ' + sys.platform)
@@ -49,35 +47,28 @@ def main():
         environment = os.environ.copy()
         environment['PHOENIXFORGE_QT'] = 'pyside6'
         environment['QT_QPA_PLATFORM'] = 'windows'
-        if not args.experimental_preview:
-            invoke([sys.executable, '-m', 'pytest', '-q', '-m', 'not packaged',
-                    '--junitxml=build/windows-tests.xml'], environment)
-            result = ET.parse(str(ROOT / 'build/windows-tests.xml'))
-            suites = list(result.iter('testsuite'))
-            report['tests'] = {k: sum(int(s.get(k, 0)) for s in suites)
-                               for k in ('tests', 'failures', 'errors', 'skipped')}
-            if any(t.get('classname', '').endswith(('test_simulation', 'test_gui')) and t.find('skipped') is not None
-                   for t in result.iter('testcase')):
-                raise RuntimeError('An HDL test was skipped; bundled simulator is mandatory')
-        portable = ROOT / 'dist/PhoenixForge_v1.6.2_Portable.exe'
-        # Reuse a PE left by strict acceptance only for an explicitly UNVERIFIED preview.
-        if not args.experimental_preview or not portable.is_file():
-            invoke([sys.executable, '-m', 'PyInstaller', '--clean', '--noconfirm',
-                    '--distpath', 'dist', '--workpath', 'build/work-modern', 'build/PhoenixForge.spec'], environment)
+        invoke([sys.executable, '-m', 'pytest', '-vv', '--maxfail=1', '-m', 'not packaged',
+                '--junitxml=build/windows-tests.xml'], environment)
+        result = ET.parse(str(ROOT / 'build/windows-tests.xml'))
+        suites = list(result.iter('testsuite'))
+        report['tests'] = {k: sum(int(item.get(k, 0)) for item in suites)
+                           for k in ('tests', 'failures', 'errors', 'skipped')}
+        if any(report['tests'][key] for key in ('failures', 'errors', 'skipped')):
+            raise RuntimeError('CI Windows exige cero pruebas fallidas, erróneas u omitidas')
+        portable = ROOT / 'dist/PhoenixForge_v1.7.0_Portable.exe'
+        invoke([sys.executable, '-m', 'PyInstaller', '--clean', '--noconfirm',
+                '--distpath', 'dist', '--workpath', 'build/work-modern',
+                'build/PhoenixForge.spec'], environment)
         artifact = inspect_pe(portable, minimum_size=20*1024*1024)
-        if args.experimental_preview:
-            preview = ROOT / 'dist/PhoenixForge_v1.6.2_Portable_EXPERIMENTAL.exe'
-            shutil.copy2(portable, preview)
-            portable.unlink(missing_ok=True)  # Never publish an unverified file under a stable name.
-            report['artifacts'].append(inspect_pe(preview, minimum_size=20*1024*1024))
-            report['warning'] = ('PREVIEW SIN VERIFICAR: pruebas de integración y aceptación '
-                                 'de Windows omitidas deliberadamente; simulación HDL puede fallar')
-            report['validation_status'] = 'experimental_unverified'
-            report['success'] = True
-            return 0
         report['artifacts'].append(artifact)
-        acceptance = verify(portable, ROOT / 'build/packaged-acceptance')
+        print('Build completed. Starting independent frozen-EXE acceptance watchdog (10 min maximum).', flush=True)
+        subprocess.run([sys.executable, '-u', str(ROOT / 'tools/test_packaged.py'),
+                        str(portable), '--output', str(ROOT / 'build/packaged-acceptance')],
+                       cwd=str(ROOT), env=environment, check=True, timeout=600)
+        acceptance = json.loads((ROOT / 'build/packaged-acceptance/packaged-acceptance.json').read_text(encoding='utf-8'))
         report['native_acceptance'] = acceptance
+        if not acceptance.get('ordinary_startup') or len(acceptance.get('launches', [])) != 2:
+            raise RuntimeError('Faltan arranque normal y dos pruebas del EXE congelado')
         report['validation_status'] = 'ci_accepted_windows_server_2022'
         if not args.portable_only:
             nsis = args.makensis or shutil.which('makensis')
@@ -87,7 +78,7 @@ def main():
             if not nsis:
                 raise FileNotFoundError('Install NSIS 3.11 on the build machine, or specify --makensis')
             invoke([nsis, '/INPUTCHARSET', 'UTF8', '/DPF_ROOT=' + str(ROOT), ROOT / 'installer/PhoenixForge.nsi'])
-            report['artifacts'].append(inspect_pe(ROOT / 'dist/PhoenixForge_v1.6.2_Setup.exe',
+            report['artifacts'].append(inspect_pe(ROOT / 'dist/PhoenixForge_v1.7.0_Setup.exe',
                                                  minimum_size=20*1024*1024, machine=None))
         report['success'] = True
     except Exception as error:
