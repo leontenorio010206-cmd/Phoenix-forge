@@ -81,8 +81,16 @@ def build():
             isolated["HOME"] = home
             isolated["XDG_DATA_HOME"] = str(Path(home) / ".local" / "share")
             command([bundle / "run-phoenixforge.sh", "--doctor"], env=isolated, timeout=30)
-            command([bundle / "run-phoenixforge.sh", "--self-test",
-                     acceptance_dir, "--offscreen"], env=isolated, timeout=180)
+            try:
+                command([bundle / "run-phoenixforge.sh", "--self-test",
+                         acceptance_dir, "--offscreen"], env=isolated, timeout=180)
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                for name in ("stage-events.log", "acceptance.json", "frozen-python-stacks.log"):
+                    detail = acceptance_dir / name
+                    if detail.is_file():
+                        print("=== LINUX ACCEPTANCE DIAGNOSTIC " + name + " ===", flush=True)
+                        print(detail.read_text(encoding="utf-8", errors="replace")[-14000:], flush=True)
+                raise
         result = json.loads((acceptance_dir / "acceptance.json").read_text(encoding="utf-8"))
         checks = set(result.get("checks", {}))
         required = {"resources", "window_visible", "editor", "hdl_and_vcd",
