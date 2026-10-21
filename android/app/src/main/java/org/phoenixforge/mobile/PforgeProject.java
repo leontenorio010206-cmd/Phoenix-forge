@@ -61,7 +61,7 @@ public final class PforgeProject {
             PforgeProject p = new PforgeProject(m, new LinkedHashMap<>());
             p.addSource("main.v", "module main(input a, input b, output y);\n  assign y = a & b;\nendmodule\n");
             return p;
-        } catch (JSONException error) {
+        } catch (JSONException | IOException error) {
             throw new IllegalStateException(error);
         }
     }
@@ -152,7 +152,14 @@ public final class PforgeProject {
             throw new IOException("No se puede registrar el archivo", error);
         }
         payload.put(path, bytes);
-        checkTotalSize();
+        try {
+            checkTotalSize();
+        } catch (IOException error) {
+            payload.remove(path);
+            JSONArray files = manifest.optJSONArray("hdl_files");
+            if (files != null) files.remove(files.length() - 1);
+            throw error;
+        }
     }
 
     public void setSource(String name, String content) throws IOException {
