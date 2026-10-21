@@ -159,7 +159,7 @@ def verify(executable, output):
                     raise RuntimeError('Frozen GUI self-test exceeded 180 seconds; inspect '
                         + str(child_dir / 'stage-events.log') + ' and frozen-python-stacks.log')
                 result = child
-                        notify(stage + '_exit_' + str(result.returncode))
+            notify(stage + '_exit_' + str(result.returncode))
             acceptance = child_dir/'acceptance.json'
             if result.returncode:
                 detail = ''
