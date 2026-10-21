@@ -6,7 +6,7 @@ from pathlib import Path
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-TOP_FILES = {'README.md', 'CHANGELOG.md', 'VERSION', 'LICENSE', 'THIRD_PARTY_NOTICES.md',
+TOP_FILES = {'README.md', 'CHANGELOG.md', 'VERSION', 'LICENSE', 'LEGAL.md', 'CREDITS.md', 'THIRD_PARTY_NOTICES.md',
              'INFORME_ENTREGA.md', 'pyproject.toml', '.gitignore', 'install_windows.bat',
              'run_windows.bat', 'build_windows.bat', 'install_linux.sh', 'run.sh'}
 TOP_DIRS = {'app', 'docs', 'tests', 'tools', 'requirements', 'examples', 'installer', '.github', 'history'}
