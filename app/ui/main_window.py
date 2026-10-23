@@ -91,7 +91,7 @@ class MainWindow(W.QMainWindow, ProjectActions):
         self.clock = self.examples.clock  # Interactive sample, no longer a top-level page.
         self.devices = DevicePanel(lambda: self.project, lambda: self.settings.values)
         self.digital_export = DigitalExportPanel()
-        self.hardware = HardwareStudio()
+        self.hardware = HardwareStudio(lambda: self.project)
         self.plugins = PluginPanel(lambda: copy.deepcopy(self.project))
         self.settings = SettingsPanel()
         for widget in (self.home, self.studio, self.devices, self.examples, self.digital_export, self.hardware, self.plugins, self.settings):
