@@ -1,6 +1,6 @@
 # Guion de video — Exportar HDL de PhœnixForge a Digital
 
-**Duración estimada:** 1:45–2:30 minutos. **Formato:** tutorial académico con recreaciones vectoriales de interfaz, **no captura experimental en vivo**.  
+**Duración aproximada del MP4 narrado:** 3 minutos y 15 segundos. **Formato:** tutorial académico con recreaciones vectoriales de interfaz, **no captura experimental en vivo**.  
 **Autor del proyecto:** Leonardo Antonio Hernández Tenorio. **Asistencia IA:** ChatGPT (OpenAI).  
 **Versión:** PhœnixForge v1.7.0.
 
@@ -8,14 +8,16 @@
 
 | Tiempo | Pantalla / demostración | Narración sugerida |
 | --- | --- | --- |
-| 00:00–00:12 | Portada PhœnixForge, Digital, Icarus | «Aprenderemos a comprobar un contador de cuatro bits en PhœnixForge y exportarlo a Digital.» |
-| 00:12–00:28 | Archivo → Abrir proyecto → Ejemplo .pforge | «Abrimos el proyecto de ejemplo; el diseño se llama fpga_demo y su banco de pruebas tb_fpga_demo.» |
-| 00:28–00:48 | Estudio HDL, ▶ Simular, consola PASS | «Icarus Verilog ejecuta doce comprobaciones; el resultado esperado es PASS: 12 FPGA RTL vectors.» |
-| 00:48–01:05 | Exportar a Digital, módulo fpga_demo, botón ZIP | «Elegimos el módulo de diseño, no el testbench, y exportamos el componente ZIP.» |
-| 01:05–01:20 | Carpeta descomprimida y component.v | «Extraemos el ZIP; el archivo component.v es el que Digital puede utilizar.» |
-| 01:20–01:42 | Digital → External File → Verilog; ajustes IVerilog | «En Digital vinculamos component.v y configuramos IVerilog si falta.» |
-| 01:42–02:07 | Diagrama reloj/reset/bus/LED, secuencia 0000-0001-0010 | «Conectamos reloj, reset y cuatro LED; el contador avanza en cada flanco ascendente.» |
-| 02:07–02:20 | Alcance real / créditos | «Esto demuestra una simulación lógica; no programa ni emula eléctricamente una FPGA real. Digital es obra de Helmut Neemann.» |
+| 00:00–00:13 | Portada PhœnixForge, Digital, Icarus | «Aprenderemos a comprobar un contador de cuatro bits en PhœnixForge y exportarlo a Digital.» |
+| 00:46–01:02 | Archivo → Abrir proyecto → Ejemplo .pforge | «Abrimos el proyecto de ejemplo; el diseño se llama fpga_demo y su banco de pruebas tb_fpga_demo.» |
+| 01:02–01:22 | Estudio HDL, ▶ Simular, consola PASS | «Icarus Verilog ejecuta doce comprobaciones; el resultado esperado es PASS: 12 FPGA RTL vectors.» |
+| 01:22–01:38 | Exportar a Digital, módulo fpga_demo, botón ZIP | «Elegimos el módulo de diseño, no el testbench, y exportamos el componente ZIP.» |
+| 01:38–01:56 | Carpeta descomprimida y component.v | «Extraemos el ZIP; el archivo component.v es el que Digital puede utilizar.» |
+| 01:56–02:13 | Digital → External File → Verilog; ajustes IVerilog | «En Digital vinculamos component.v y configuramos IVerilog si falta.» |
+| 02:13–02:47 | Diagrama reloj/reset/bus/LED, secuencia 0000-0001-0010 | «Conectamos reloj, reset y cuatro LED; el contador avanza en cada flanco ascendente.» |
+| 02:47–03:08 | Alcance real / créditos | «Esto demuestra una simulación lógica; no programa ni emula eléctricamente una FPGA real. Digital es obra de Helmut Neemann.» |
+
+**Nota:** el video dedica sus dos primeras escenas a la presentación y al alcance técnico (00:00–00:46). Los tiempos posteriores son aproximados y el reproductor puede variar algunos segundos por los fotogramas de transición. El archivo de subtítulos `.srt` distribuido con el paquete tiene marcas más precisas.
 
 ## Advertencia sobre las imágenes
 
