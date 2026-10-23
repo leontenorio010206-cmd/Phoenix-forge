@@ -39,6 +39,42 @@ Para una compilación manual desde la carpeta exportada puedes utilizar:
 quartus_sh --flow compile PhoenixForge_CycloneIV
 ```
 
+## Compilar y ejecutar desde PhoenixForge (SRAM temporal)
+
+También se añadió un flujo **integrado en una sola ventana**. El requisito
+sigue siendo tener instalada la herramienta Quartus con los dispositivos
+Cyclone IV; no necesitas abrir la interfaz de Quartus. PhoenixForge la
+encuentra en el PATH, QUARTUS_ROOTDIR, o rutas habituales de Windows; también
+puedes elegir el ejecutable `quartus_sh.exe`.
+
+1. Conecta la placa **con alimentación y un cable/programador JTAG adecuado**.
+2. En **Cyclone IV / Quartus**, pulsa **Detectar FPGA conectada por JTAG**.
+   La herramienta solo lee la cadena; no modifica la FPGA. Si hay más de un
+   cable selecciona el correcto. **JTAG no confirma el encapsulado ni los pines.**
+3. Introduce el **part number completo impreso en el chip**. Selecciona un
+   módulo Verilog sintetizable, no el testbench.
+4. Configura las ubicaciones de pines `PIN_XX` en el proyecto **únicamente**
+   después de comprobarlas en el esquema exacto de tu placa. Deben cubrir todos
+   los puertos del módulo principal. Prepara también los estándares I/O y
+   restricciones de reloj en Quartus; un archivo `.sdc` incluido en el
+   proyecto se exporta sin alterar su contenido.
+5. Marca «Incluir pines solo si comprobé TODOS en el esquema físico».
+6. Pulsa **⚡ Compilar y ejecutar en Cyclone IV (SRAM)** y confirma el aviso.
+   PhoenixForge exporta a la carpeta de datos del usuario, invoca
+   `quartus_sh --flow compile`, exige un `.sof` nuevo, verifica de nuevo
+   el modelo/familia detectado en JTAG y lo configura con `quartus_pgm`.
+
+**No se escribe Flash**: cuando apagas la placa se pierde la configuración
+SRAM. Tampoco se instala Quartus, se modifican drivers ni se realiza
+programación en GitHub Actions. Toda carga al chip ocurre físicamente
+en el PC del usuario tras una confirmación explícita.
+
+**Limitación fundamental:** Cyclone IV no tiene aquí una cadena abierta
+completa de bitstream, por lo que no hay soporte 100 % independiente de
+Quartus. No se ha validado el flujo en una placa real. La detección JTAG
+verifica la densidad reconocible, no que el encapsulado, reloj o voltaje
+sean correctos: esos datos deben proceder del esquema físico.
+
 ## Seguridad y limitaciones
 
 - Se valida la **forma** del part number `EP4CE...` o `EP4CGX...`.
