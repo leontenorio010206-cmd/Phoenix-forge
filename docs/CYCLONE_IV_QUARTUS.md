@@ -44,8 +44,9 @@ quartus_sh --flow compile PhoenixForge_CycloneIV
 - Se valida la **forma** del part number `EP4CE...` o `EP4CGX...`.
   La lista real de chips la valida Quartus; no hay compatibilidad certificada
   con tarjetas físicas ni garantía de que soporte todos los chips.
-- El archivo `.qsf` incorpora únicamente pines de `Project.pins` con
-  formato `PIN_...`. **Nunca se infieren ni se asignan automáticamente**.
+- La interfaz **no exporta pines por defecto**. Si marcas explícitamente
+  «Incluir pines», incorpora los de `Project.pins` que tengan formato
+  `PIN_...`. **Nunca se infieren**; verifica todos antes de activar la opción.
   Un número de pin válido sintácticamente no implica que sea correcto.
 - No se configuran automáticamente restricciones de reloj (`.sdc`), PLL,
   estándares de voltaje, memorias externas ni periféricos de la placa.
