@@ -36,6 +36,16 @@ El objetivo a largo plazo es facilitar el diseño sobre diferentes modelos de FP
 
 **El ejercicio académico de conducción fue retirado de la v1.1** a petición del autor. Se mantiene la lógica combinacional genérica y un ejemplo de sumador completo.
 
+## Asistente FPGA universal (rama de desarrollo)
+
+El nuevo panel **Hardware Studio → FPGA universal** ofrece consulta de
+herramientas instaladas, sugerencia conservadora del cable USB y lectura
+**JTAG de solo diagnóstico** con openFPGALoader. Identifica tentativamente
+familias de distintos fabricantes sin inventar el modelo de placa ni sus pines.
+**No compila ni programa todas las FPGA:** esas funciones siguen dependiendo
+de backends específicos, dispositivos soportados y configuraciones físicas
+verificadas. Consulta [límites del asistente universal](docs/FPGA_UNIVERSAL.md).
+
 ## Integración Cyclone IV / Quartus (rama de desarrollo)
 
 En la rama de desarrollo se añadió **Hardware Studio → Cyclone IV / Quartus**:
