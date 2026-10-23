@@ -59,6 +59,18 @@ python -m app
 
 Para compilar y simular Verilog desde el código fuente se necesita Icarus Verilog, o un runtime de Icarus integrado correctamente. La distribución final busca incluirlo.
 
+## Manuales y práctica para profesores y estudiantes
+
+Documentación de la edición estable **v1.7.0**, con un ejemplo reproducible:
+
+- [Manual de usuario actualizado](docs/USER_MANUAL.md) — proyecto, editor HDL, simulación, visor VCD y exportación.
+- [Manual de instalación](docs/INSTALLATION_MANUAL.md) — descarga segura del Setup/Portable, Java, Digital, SHA-256 y problemas comunes.
+- [Tutorial de exportación a Digital](docs/DIGITAL_TUTORIAL.md) — contador de cuatro bits, simulación con Icarus, External File, IVerilog y conexiones.
+- [Guion de video ilustrado](docs/VIDEO_TUTORIAL.md) — secuencia docente y aclaración de que las pantallas esquemáticas no son capturas de un ensayo real.
+- [Ejemplo FPGA para el profesor](examples/fpga_demo_profesor/README.md), con proyecto **.pforge** importable y fuentes Verilog.
+
+**Alcance:** exporta un componente HDL de Verilog, no un bitstream físico, plugin Java ni circuito Digital .dig listo para ejecutar. El usuario conecta el bloque en Digital y guarda allí su circuito.
+
 ## Estructura del proyecto
 
 ```text
