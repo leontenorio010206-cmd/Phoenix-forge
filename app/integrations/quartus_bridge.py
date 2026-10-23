@@ -56,11 +56,14 @@ def export_project(project, parent, part, top=None, pins=None):
 
     source_files = []
     for filename, content in sorted(project.files.items()):
-        if not filename.lower().endswith((".v", ".sv")):
+        if not filename.lower().endswith((".v", ".sv", ".sdc")):
             continue
         safe_relative(filename)
         if not SOURCE_RE.fullmatch(filename):
             raise ValueError("Renombra el archivo HDL: ruta incompatible con Quartus: " + filename)
+        if filename.lower().endswith(".sdc"):
+            source_files.append((filename, content))
+            continue
         entries = [m for m in index if m["file"] == filename]
         # Exclude files that contain testbenches only; keep files with design modules.
         if entries and all(m["testbench_hint"] or
@@ -104,7 +107,8 @@ def export_project(project, parent, part, top=None, pins=None):
         destination = output / "src" / filename
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(content, encoding="utf-8")
-        kind = "SYSTEMVERILOG_FILE" if filename.lower().endswith(".sv") else "VERILOG_FILE"
+        kind = ("SDC_FILE" if filename.lower().endswith(".sdc") else
+                "SYSTEMVERILOG_FILE" if filename.lower().endswith(".sv") else "VERILOG_FILE")
         qsf.append("set_global_assignment -name %s {src/%s}" % (kind, filename))
     for signal, location in checked_pins:
         qsf.append("set_location_assignment %s -to {%s}" % (location, signal))
