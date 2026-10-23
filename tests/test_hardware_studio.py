@@ -148,8 +148,9 @@ def test_pico_uf2_requires_bootsel_marker_and_no_overwrite(tmp_path):
 def test_hardware_studio_ui(qt_app):
     from app.ui.hardware_studio import HardwareStudio
     panel = HardwareStudio()
-    assert panel.tabs.count() == 5
-    assert panel.tabs.tabText(3) == "Cyclone IV / Quartus"
+    assert panel.tabs.count() == 6
+    assert panel.tabs.tabText(3) == "FPGA universal"
+    assert panel.tabs.tabText(4) == "Cyclone IV / Quartus"
     assert panel.fqbn.currentText() == "arduino:avr:uno"
     assert "pinMode" in panel.sketch.toPlainText()
     assert panel.worker is None
