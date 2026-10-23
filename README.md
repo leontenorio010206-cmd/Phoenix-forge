@@ -36,6 +36,17 @@ El objetivo a largo plazo es facilitar el diseño sobre diferentes modelos de FP
 
 **El ejercicio académico de conducción fue retirado de la v1.1** a petición del autor. Se mantiene la lógica combinacional genérica y un ejemplo de sumador completo.
 
+## Integración Cyclone IV / Quartus (rama de desarrollo)
+
+En la rama de desarrollo se añadió **Hardware Studio → Cyclone IV / Quartus**:
+permite generar un proyecto `.qpf/.qsf` desde el Verilog del proyecto y
+compilar mediante Quartus Prime Lite/Standard **instalado aparte**. Exige
+indicar el chip exacto y nunca asigna pines por suposición ni programa el
+hardware automáticamente. **Esta función no está incluida en el binario
+publicado v1.7.0; requiere compilar la rama actualizada.**
+
+Consulta la [guía Cyclone IV y Quartus](docs/CYCLONE_IV_QUARTUS.md).
+
 ## Construcción automática en Windows
 
 El flujo [Windows Build](.github/workflows/ci-windows.yml) prepara Windows, Python, PySide6, PyInstaller, Icarus y los componentes necesarios. Solo publica el ejecutable cuando pasa la aceptación nativa. El paquete del Setup añade Digital y Java como **descargas oficiales opcionales**, verificadas por SHA-256.
