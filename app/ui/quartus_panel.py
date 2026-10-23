@@ -103,6 +103,13 @@ class QuartusPanel(W.QWidget):
             "si tienen formato PIN_XX. Sin un pinout validado la salida es "
             "únicamente para revisión y NO está lista para cargar en la placa.",
             "Muted", True))
+        layout.addWidget(label("Asignación de pines (uno por línea: clk=PIN_23)", "Heading"))
+        self.pin_editor = W.QPlainTextEdit()
+        self.pin_editor.setPlaceholderText(
+            "clk=PIN_23\nled=PIN_24\n\nNO copies estos pines de ejemplo: "
+            "consulta el esquema real de tu placa.")
+        self.pin_editor.setMaximumHeight(112)
+        layout.addWidget(self.pin_editor)
         self.include_pins = W.QCheckBox("Incluir pines solo si comprobé TODOS en el esquema físico")
         self.include_pins.setChecked(False)
         layout.addWidget(self.include_pins)
@@ -143,8 +150,27 @@ class QuartusPanel(W.QWidget):
         if project is not None and project.project_id != self.last_project_id:
             self.last_project_id = project.project_id
             self.top.setText(project.simulation.get("top", ""))
+            self.pin_editor.setPlainText("\n".join(
+                str(port) + "=" + str(location)
+                for port, location in sorted(project.pins.items())))
+            self.include_pins.setChecked(False)
             self.output = None
             self.compile_button.setEnabled(False)
+
+    def checked_pins(self):
+        """Parse explicit user-reviewed physical locations; reject ambiguity."""
+        result = {}
+        for row in self.pin_editor.toPlainText().splitlines():
+            row = row.strip()
+            if not row:
+                continue
+            if row.count("=") != 1:
+                raise ValueError("Usa puerto=PIN_XX, uno por línea.")
+            port, physical = (piece.strip() for piece in row.split("=", 1))
+            if not port or port in result or not physical:
+                raise ValueError("Pin repetido o vacío: " + row)
+            result[port] = physical
+        return result
 
     def choose_exe(self):
         path, _ = W.QFileDialog.getOpenFileName(
@@ -171,7 +197,7 @@ class QuartusPanel(W.QWidget):
         try:
             self.output = quartus_bridge.export_project(
                 project, parent, self.part.text(), self.top.text().strip() or None,
-                pins=project.pins if self.include_pins.isChecked() else {})
+                pins=self.checked_pins() if self.include_pins.isChecked() else {})
         except (ValueError, OSError) as exc:
             W.QMessageBox.warning(self, "Exportación Quartus", str(exc))
             return
@@ -242,9 +268,11 @@ class QuartusPanel(W.QWidget):
             return
         part = self.part.text().strip()
         top = self.top.text().strip()
+        prepared = copy.deepcopy(project)
         try:
             cyclone_runner.quartus_bridge.validate_part(part)
-            cyclone_runner.verify_pin_coverage(project, top)
+            prepared.pins = self.checked_pins()
+            cyclone_runner.verify_pin_coverage(prepared, top)
         except (ValueError, KeyError) as error:
             W.QMessageBox.warning(self, "Configuración incompleta", str(error))
             return
@@ -264,7 +292,7 @@ class QuartusPanel(W.QWidget):
         cable = self.cable.currentData()
         self.run_button.setEnabled(False)
         self.status.appendPlainText("\nIniciando flujo integrado Cyclone IV...")
-        self.worker = OneClickTask(project, work, part, top, cable,
+        self.worker = OneClickTask(prepared, work, part, top, cable,
                                    self.quartus_exe.text().strip() or None, self)
         self.worker.progress.connect(self.status.appendPlainText)
         self.worker.completed.connect(self.run_completed)
