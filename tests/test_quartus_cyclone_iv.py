@@ -125,5 +125,6 @@ def test_hardware_studio_exposes_quartus_tab_and_project(qt_app, demo):
     tab.sync_project()
     assert tab.top.text() == "contador"
     assert tab.part.text() == ""
+    assert not tab.include_pins.isChecked()
     assert not tab.compile_button.isEnabled()
     panel.close()
