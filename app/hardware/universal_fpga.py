@@ -135,6 +135,28 @@ def capability_inventory(found=None):
     return items
 
 
+
+def suggest_cable_for_usb(identity):
+    """Suggest, never assert: a USB descriptor identifies only an adapter."""
+    matched = fpga.VID_PID.search(str(identity or ""))
+    if not matched:
+        return None, ("El dispositivo seleccionado no expone un VID/PID USB "
+                      "compatible. Elige el cable a partir de su documentación.")
+    vid = matched.group(1).upper()
+    if vid == "09FB":
+        return "usb-blaster", (
+            "Parece un adaptador Intel/Altera compatible con USB-Blaster. "
+            "Podría ser otra revisión o una copia: verifica el modelo y, "
+            "si es USB-Blaster II, elige usb-blasterII. "
+            "NO identifica el chip FPGA ni los pines.")
+    if vid in {"0403", "2A19"}:
+        return None, ("Adaptador FTDI/Digilent detectado. Existen muchos "
+                      "cables y canales con ese proveedor; consulta el modelo "
+                      "y selecciona su identificador compatible con openFPGALoader.")
+    return None, ("USB VID/PID no basta para reconocer un cable JTAG. "
+                  "Selecciona el tipo de cable desde su documentación.")
+
+
 def inspect_cable(target, loader=None, runner=None):
     """Explicit read-only probe. Never probes all interfaces without selection."""
     if not SAFE_CABLE.fullmatch(target or ""):
