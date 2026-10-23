@@ -41,8 +41,9 @@ class HardwareTask(C.QThread):
 
 class HardwareStudio(W.QWidget):
     """Use only approved, explicit operations on hardware; never auto-flash on attach."""
-    def __init__(self):
+    def __init__(self, project_provider=None):
         super().__init__()
+        self.project_provider = project_provider
         self.worker = None
         self.detected = []
         self.seen_once = False
@@ -83,6 +84,7 @@ class HardwareStudio(W.QWidget):
         self._make_arduino()
         self._make_pico()
         self._make_fpga()
+        self.tabs.addTab(QuartusPanel(self.project_provider), "Cyclone IV / Quartus")
         self._make_arduino_catalog()
 
         self.log = W.QPlainTextEdit()
