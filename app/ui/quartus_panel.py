@@ -56,6 +56,9 @@ class QuartusPanel(W.QWidget):
             "si tienen formato PIN_XX. Sin un pinout validado la salida es "
             "únicamente para revisión y NO está lista para cargar en la placa.",
             "Muted", True))
+        self.include_pins = W.QCheckBox("Incluir pines solo si comprobé TODOS en el esquema físico")
+        self.include_pins.setChecked(False)
+        layout.addWidget(self.include_pins)
         actions = W.QHBoxLayout()
         actions.addWidget(button("Generar proyecto Quartus", self.export, True))
         self.compile_button = button("Compilar con Quartus", self.compile)
@@ -103,7 +106,8 @@ class QuartusPanel(W.QWidget):
             return
         try:
             self.output = quartus_bridge.export_project(
-                project, parent, self.part.text(), self.top.text().strip() or None)
+                project, parent, self.part.text(), self.top.text().strip() or None,
+                pins=project.pins if self.include_pins.isChecked() else {})
         except (ValueError, OSError) as exc:
             W.QMessageBox.warning(self, "Exportación Quartus", str(exc))
             return
