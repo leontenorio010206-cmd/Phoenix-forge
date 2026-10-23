@@ -9,6 +9,7 @@ from app.hardware import arduino, fpga
 from app.hardware.arduino_catalog import (model_shortcuts, merge_catalog,
     BASIC_PACK, CORE_HEADERS, EXAMPLES, DEFAULT_CORES)
 from app.devices.catalog import load_profiles
+from app.ui.quartus_panel import QuartusPanel
 
 EXAMPLE = """// Ejemplo para Arduino Uno (LED integrado)
 void setup() {
