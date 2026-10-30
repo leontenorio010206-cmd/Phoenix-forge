@@ -42,7 +42,7 @@ def build_setup(root=ROOT, nsis=None, runner=subprocess.run):
         "setup":info,"osscad_sha256":spec["sha256"],
         "osscad_installer_tested_on_user_pc":False,
         "cyclone_iv_bitgen_ready":False}
-    (root/"build/setup-181-report.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
+    (root/"build/setup-182-report.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
     return report
 
 if __name__ == "__main__":
