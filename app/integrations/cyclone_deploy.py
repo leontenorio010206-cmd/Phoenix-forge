@@ -6,7 +6,6 @@ Never programs Flash; never writes on USB attach or JTAG scan.
 """
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
 import shutil
@@ -16,7 +15,6 @@ from datetime import datetime, timezone
 
 from app.hardware import fpga
 from app.integrations.quartus_bridge import validate_part
-from app.utils.paths import safe_relative
 
 SCHEMA = "phoenixforge-cyclone-iv-sram-v1"
 MAX_RBF_BYTES = 32 * 1024 * 1024
@@ -67,8 +65,11 @@ def stage_external_rbf(project, firmware, destination, chip, board,
     """
     part, pins = check_physical_profile(
         project, chip, board, pins_confirmed, voltage_confirmed)
-    source = Path(firmware).expanduser().resolve()
-    if source.suffix.lower() != ".rbf" or not source.is_file() or source.is_symlink():
+    unchecked_source = Path(firmware).expanduser()
+    if unchecked_source.is_symlink():
+        raise ValueError("No se admiten enlaces simbólicos como bitstreams.")
+    source = unchecked_source.resolve()
+    if source.suffix.lower() != ".rbf" or not source.is_file():
         raise ValueError("Para el flujo libre Cyclone IV importa un .rbf existente.")
     if not MIN_RBF_BYTES <= source.stat().st_size <= MAX_RBF_BYTES:
         raise ValueError("Tamaño RBF fuera de límites; verifica procedencia y modelo.")
@@ -124,8 +125,16 @@ def inspect_staged(folder):
         not record.get("voltages_reviewed_by_user")):
         raise ValueError("Manifiesto incompleto o de origen no admitido.")
     validate_part(record.get("part"))
-    if not record.get("pins") or not SAFE_BOARD.fullmatch(str(record.get("board", ""))):
+    if not isinstance(record.get("pins"), dict) or not record["pins"] or not SAFE_BOARD.fullmatch(str(record.get("board", ""))):
         raise ValueError("Falta confirmación de placa y pines.")
+    seen_pins = set()
+    for port, location in record["pins"].items():
+        if (not isinstance(port, str) or not re.fullmatch(r"[A-Za-z_]\w*(?:\[\d+\])?", port) or
+            not isinstance(location, str) or not re.fullmatch(r"PIN_[A-Z0-9]{1,8}", location)):
+            raise ValueError("Asignación física del paquete inválida.")
+        if location in seen_pins:
+            raise ValueError("Hay pines físicos duplicados en el paquete.")
+        seen_pins.add(location)
     binary = root / "firmware.rbf"
     if binary.is_symlink() or not binary.is_file() or binary.resolve().parent != root:
         raise ValueError("Firmware ausente o fuera de carpeta.")
@@ -142,14 +151,19 @@ def jtag_preflight(output, part):
     text = str(output or "")
     if JTAG_UNKNOWN.search(text) or "programación bloqueada" in text.lower():
         raise RuntimeError("La lectura JTAG muestra un dispositivo desconocido.")
-    ids = {code.upper().zfill(8) for code in JTAG_CODE.findall(text)}
-    if len(ids) != 1:
-        raise RuntimeError("Se requiere exactamente un IDCODE JTAG inequívoco.")
+    if re.search(r"\b(?:no\s+(?:device|cable|fpga)|multiple\s+(?:jtag\s+)?devices|chain\s+length\s*[:=]\s*[2-9])\b", text, re.I):
+        raise RuntimeError("No hay una única FPGA/cadena JTAG confirmada.")
+    codes = JTAG_CODE.findall(text)
+    # Do not deduplicate repeated IDCODEs: two identical chips remain two devices.
+    if len(codes) != 1:
+        raise RuntimeError("Se requiere exactamente un dispositivo JTAG.")
     candidates = {name.upper() for name in PART_CANDIDATE.findall(text)}
+    if len(candidates) > 1:
+        raise RuntimeError("El JTAG muestra varios modelos posibles; selección ambigua.")
     if candidates and part not in candidates:
         raise RuntimeError("El chip mostrado por JTAG no coincide con el chip confirmado.")
     # One IDCODE may still correspond to several parts or packages.
-    return {"jtag_idcode": next(iter(ids)), "part_from_physical_marking": part,
+    return {"jtag_idcode": codes[0].upper().zfill(8), "part_from_physical_marking": part,
             "jtag_exact_part_verified": False}
 
 
@@ -169,10 +183,21 @@ def deploy_sram(folder, cable, physical_part, confirmed_board=False,
         raise ValueError("Selecciona un cable JTAG concreto.")
     detected = fpga.probe_target(cable, via="cable", executable=loader, runner=runner)
     evidence = jtag_preflight(detected, record["part"])
-    # Never use FLASH (-f) or change global drivers.
-    report = fpga.program_target(
-        cable, bitstream, via="cable", flash=False,
-        executable=loader, runner=runner)
+    # Re-verify after the JTAG scan, then program a private throwaway copy,
+    # not the potentially editable source file in the project directory.
+    record_again, bitstream = inspect_staged(folder)
+    if record_again["rbf_sha256"] != record["rbf_sha256"]:
+        raise RuntimeError("El firmware cambió durante la lectura JTAG.")
+    with tempfile.TemporaryDirectory(prefix="pf-sram-") as temporary:
+        clean_copy = Path(temporary) / "firmware.rbf"
+        shutil.copyfile(bitstream, clean_copy)
+        if (clean_copy.stat().st_size != record["rbf_bytes"] or
+                digest(clean_copy) != record["rbf_sha256"]):
+            raise RuntimeError("El firmware cambió antes de programar; operación cancelada.")
+        # Never use FLASH (-f) or change global drivers.
+        report = fpga.program_target(
+            cable, clean_copy, via="cable", flash=False,
+            executable=loader, runner=runner)
     return {"status": "sram_configuration_sent",
             "board": record["board"], "part": record["part"],
             "jtag_idcode": evidence["jtag_idcode"],
