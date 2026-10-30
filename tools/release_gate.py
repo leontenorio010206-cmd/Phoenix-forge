@@ -46,7 +46,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--directory", type=Path, required=True)
-    parser.add_argument("--version", default="1.7.0", choices=("1.7.0","1.8.1"))
+    parser.add_argument("--version", default="1.7.0", choices=("1.7.0","1.8.1","1.8.2"))
     args = parser.parse_args()
     verified = verify_release(args.report, args.directory, args.version)
     print("EXE ACEPTADO en runner Windows:", verified["name"], verified["bytes"], verified["sha256"])
