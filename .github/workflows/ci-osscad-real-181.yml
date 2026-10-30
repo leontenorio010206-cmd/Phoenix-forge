@@ -1,0 +1,43 @@
+name: PhoenixForge | OSS CAD Suite 1.8.1 descarga real
+on:
+  push:
+    branches: [feature/181-setup]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: windows-2022
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Descargar e instalar OSS CAD oficial, sin Quartus
+        shell: pwsh
+        run: |
+          $prefix = Join-Path $env:RUNNER_TEMP 'PhoenixForge_181_OSS_CAD_Integration'
+          $installer = (Resolve-Path installer/install_osscad_181.ps1).Path
+          $shell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+          & $shell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $installer -InstallDir $prefix
+          if ($LASTEXITCODE -ne 0) { throw "OSS CAD install failed ($LASTEXITCODE)" }
+          $root = Join-Path $prefix 'Integrations\OSS-CAD-Suite-20261027'
+          $receipt = Get-Content (Join-Path $root 'phoenixforge-component.json') -Raw | ConvertFrom-Json
+          if ($receipt.archive_sha256 -ne 'aadcf3ff1b7cc8720509fde6c57ca84249f3beb45ddd14fd492c608241a12bb8') { throw 'Bad archive receipt' }
+          $yosys = Join-Path $root 'runtime\oss-cad-suite\bin\yosys.exe'
+          $loader = Join-Path $root 'runtime\oss-cad-suite\bin\openFPGALoader.exe'
+          if (-not (Test-Path $yosys) -or -not (Test-Path $loader)) { throw 'Executables missing' }
+          $bin = Split-Path $yosys
+          $lib = Join-Path (Split-Path $bin) 'lib'
+          $env:PATH = "$bin;$lib;" + $env:PATH
+          & $yosys -V
+          if ($LASTEXITCODE -ne 0) { throw 'Yosys executable did not start' }
+          & $loader --help | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw 'openFPGALoader failed to start' }
+          New-Item -ItemType Directory -Force (Join-Path $prefix 'netlisttest') | Out-Null
+          $v = Join-Path $prefix 'netlisttest\and_gate.v'
+          Set-Content $v 'module and_gate(input a,b, output y); assign y = a & b; endmodule'
+          & $yosys -p "read_verilog $v; synth -top and_gate; write_json $prefix/netlisttest/check.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Yosys RTL synthesis did not complete' }
+          if (-not (Test-Path (Join-Path $prefix 'netlisttest\check.json'))) { throw 'Yosys output absent' }
+          & $shell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $installer -InstallDir $prefix
+          if ($LASTEXITCODE -ne 0) { throw 'Idempotent install failed' }
+          Write-Host 'Native OSS CAD toolchain tested without Quartus or global PATH'
