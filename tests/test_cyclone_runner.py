@@ -120,3 +120,17 @@ def test_wrong_fpga_prevents_programming_or_compiling(tmp_path, design, monkeypa
         runner.compile_and_run(design, tmp_path, "EP4CE6E22C8N", "blink", runner=wrong)
     assert len(calls) == 1 and calls[0][0] == "scan"
     assert list(tmp_path.iterdir()) == []
+
+
+def test_jtag_parser_handles_hex_prefix_without_claiming_unknown_part():
+    output = ("1) USB-Blaster [USB-0]\n"
+              " 0x20f10dd UNKNOWN_DEVICE\n"
+              " 020F30DD EP4CE6\n")
+    devices = runner.parse_jtag(output)[0]["devices"]
+    assert devices[0] == {"idcode": "020F10DD", "label": "UNKNOWN_DEVICE"}
+    assert devices[1]["idcode"] == "020F30DD"
+    # Read-only diagnostic can list the cable; SRAM loading remains blocked.
+    with pytest.raises(ValueError, match="no coincide"):
+        runner.validate_chain({"cables": runner.parse_jtag(
+            "1) USB-Blaster\n 0x20f10dd UNKNOWN_DEVICE\n")},
+            "EP4CE6E22C8N")

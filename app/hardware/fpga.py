@@ -123,6 +123,30 @@ def driver_report(identity, runner=subprocess.run):
     }
 
 
+def bundled_loader():
+    """Find a vendor-neutral JTAG tool already shipped with a portable build.
+
+    This never downloads binaries, scans untrusted working directories,
+    changes drivers or assumes that the distribution actually includes one.
+    """
+    if not getattr(sys, "frozen", False):
+        return None
+    roots = [Path(sys.executable).resolve().parent]
+    if getattr(sys, "_MEIPASS", None):
+        roots.append(Path(sys._MEIPASS).resolve())
+    locations = (
+        "tools/openFPGALoader.exe", "tools/openFPGALoader",
+        "bin/openFPGALoader.exe", "bin/openFPGALoader",
+        "openFPGALoader.exe", "openFPGALoader",
+    )
+    for root in roots:
+        for relative in locations:
+            path = root / relative
+            if path.is_file():
+                return str(path)
+    return None
+
+
 def find_loader(path=None):
     if path:
         candidate = Path(path).expanduser().resolve()
@@ -131,9 +155,14 @@ def find_loader(path=None):
         if not candidate.is_file():
             raise FileNotFoundError("No se encontró openFPGALoader")
         return str(candidate)
+    packaged = bundled_loader()
+    if packaged:
+        return packaged
     result = shutil.which("openFPGALoader") or shutil.which("openFPGALoader.exe")
     if not result:
-        raise FileNotFoundError("No se encontró openFPGALoader. Selecciónalo desde su instalación oficial.")
+        raise FileNotFoundError(
+            "No se encontró openFPGALoader. Esta distribución no incluye el "
+            "binario JTAG; selecciónalo desde su instalación oficial.")
     return result
 
 

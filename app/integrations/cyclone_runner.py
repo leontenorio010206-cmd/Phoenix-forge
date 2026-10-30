@@ -16,7 +16,7 @@ from app.integrations import quartus_bridge
 DEVICE = re.compile(r"\bEP4C(?:E|GX)\d+[A-Z0-9]*\b", re.I)
 DENSITY = re.compile(r"^EP4C(?:E|GX)\d+", re.I)
 CABLE = re.compile(r"^\s*(\d+)\)\s+(.+?)\s*$")
-CHIP_LINE = re.compile(r"^\s*([0-9A-Fa-f]{8})\s+(.+?)\s*$")
+CHIP_LINE = re.compile(r"^\s*(?:0x)?([0-9A-Fa-f]{7,8})\s+(.+?)\s*$", re.I)
 
 
 def discover_tools(executable=None, which=shutil.which, environ=None):
@@ -88,7 +88,7 @@ def parse_jtag(output):
             continue
         chip = CHIP_LINE.match(line)
         if current and chip:
-            current["devices"].append({"idcode": chip[1].upper(), "label": chip[2]})
+            current["devices"].append({"idcode": chip[1].upper().zfill(8), "label": chip[2]})
     if current:
         found.append(current)
     return found

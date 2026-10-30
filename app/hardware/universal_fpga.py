@@ -82,24 +82,61 @@ UNKNOWN = {
 }
 
 
-def infer_from_jtag(result):
-    """Extract a tentative device family *only* from JTAG output.
+# IDCODEs are read-only observations, not globally unique part numbers.
+# Cyclone III/IV/10 LP can share an IDCODE, as can different Cyclone IV sizes.
+JTAG_IDCODE = re.compile(r"\b(?:idcode|id\s+code)\s*[:=]?\s*(?:0x)?([0-9a-f]{7,8})\b", re.I)
+CYCLONE_CANDIDATE = re.compile(r"\bEP4C(?:E|GX)\d+[A-Z0-9]*\b", re.I)
+CROSS_FAMILY = re.compile(r"\bcyclone\s*(?:III|3)\s*/\s*(?:IV|4)\b", re.I)
 
-    A string that merely mentions a family is not proof of a real read: the UI
-    always labels its identification as tentative and shows the raw diagnosis.
+
+def infer_from_jtag(result):
+    """Explain JTAG output without treating a shared IDCODE as an exact chip.
+
+    A single IDCODE may describe multiple models; only a physical marking and
+    a board-specific profile can establish the exact part and its pinout.
     """
-    result = str(result or "")
+    raw = str(result or "")
+    idcodes = sorted({("0" + code if len(code) == 7 else code).upper()
+                      for code in JTAG_IDCODE.findall(raw)})
+    candidates = sorted(set(part.upper() for part in
+                            CYCLONE_CANDIDATE.findall(raw)))
+    cross_family = bool(CROSS_FAMILY.search(raw))
+    if cross_family or len(candidates) > 1:
+        return {
+            "family": ("Intel/Altera Cyclone III/IV/10 LP (ambigua)"
+                       if cross_family else "Intel/Altera Cyclone IV (varios modelos)"),
+            "vendor": "Intel/Altera",
+            "detected_part": "", "key": "cyclone_ambiguous",
+            "confidence": "tentativa: IDCODE compartido; no identifica el modelo exacto",
+            "builder": "Quartus con soporte del modelo confirmado",
+            "integrated": False, "idcodes": idcodes,
+            "possible_parts": candidates,
+            "notes": ("No elijas automáticamente el primer modelo de la lista. "
+                      "Comprueba serigrafía, encapsulado y esquema de placa. "
+                      "La programación sigue bloqueada hasta validar el modelo."),
+        }
     for row, pattern in COMPILED:
-        match = pattern.search(result)
+        match = pattern.search(raw)
         if match:
             return {
                 "family": row["name"], "vendor": row["vendor"],
                 "detected_part": match.group(0).upper(), "key": row["key"],
                 "confidence": "tentativa: valida el IDCODE y el marcado físico",
                 "builder": row["builder"], "integrated": row["integrated"],
+                "idcodes": idcodes, "possible_parts": [match.group(0).upper()],
                 "notes": row["notes"],
             }
-    return dict(UNKNOWN)
+    if re.search(r"\bcyclone\s*(?:IV|4)\b", raw, re.I):
+        return {
+            "family": "Intel/Altera Cyclone IV (modelo sin resolver)",
+            "vendor": "Intel/Altera", "detected_part": "",
+            "key": "cyclone_ambiguous", "integrated": False,
+            "confidence": "tentativa: salida JTAG sin modelo único",
+            "builder": "Quartus con soporte Cyclone IV",
+            "idcodes": idcodes, "possible_parts": [],
+            "notes": "Lee el marcado físico y el pinout; no se permite programar todavía.",
+        }
+    return {**UNKNOWN, "idcodes": idcodes, "possible_parts": []}
 
 
 def toolchain_inventory(which=shutil.which):
@@ -113,6 +150,8 @@ def toolchain_inventory(which=shutil.which):
             candidate = which("openFPGALoader.exe")
         elif not candidate:
             candidate = which(name + ".exe")
+        if not candidate and name == "openFPGALoader":
+            candidate = fpga.bundled_loader()
         found[name] = str(candidate) if candidate else None
     return found
 
@@ -176,7 +215,9 @@ def describe_survey(survey, tools=None):
     lines = [
         "Cable JTAG seleccionado: " + survey["cable"],
         "Familia posible: " + match["family"],
-        "Marcado detectado: " + (match["detected_part"] or "No reconocido"),
+        "Marcado detectado: " + (match["detected_part"] or "No confirmado"),
+        "IDCODE(s) leídos: " + (", ".join(match.get("idcodes", [])) or "No identificados"),
+        "Modelos posibles: " + (", ".join(match.get("possible_parts", [])) or "Sin resolver"),
         "Confianza: " + match["confidence"],
         "Síntesis: " + match["builder"],
         "Integración física en PhoenixForge: " +

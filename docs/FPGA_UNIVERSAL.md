@@ -70,3 +70,18 @@ Fuentes técnicas:
 - https://trabucayre.github.io/openFPGALoader/guide/first-steps.html
 - https://github.com/trabucayre/openFPGALoader
 - https://github.com/YosysHQ/nextpnr
+
+## Identificación con IDCODE compartidos (rama de desarrollo)
+
+La lectura del identificador JTAG **no exige un ID preconfigurado**. Si la herramienta
+muestra un ID desconocido, PhoenixForge lo conserva en el diagnóstico. Si la
+herramienta enumera varios chips posibles (por ejemplo Cyclone III/IV/10 LP),
+no elige el primero como modelo confirmado: muestra la lista de candidatos,
+el IDCODE y la advertencia de ambigüedad. El modo lectura no programa nada.
+
+Los portables pueden localizar `openFPGALoader` empaquetado en `tools/` o `bin/`
+cuando exista. **Esta mejora de búsqueda no significa que la versión actual
+ya incluya ese binario**, Quartus o sus controladores. La generación de un
+`.sof` Cyclone IV todavía requiere Quartus compatible y un perfil de placa
+con part number y pines verificados. IDCODE desconocido o compartido nunca
+habilita una carga SRAM a ciegas.

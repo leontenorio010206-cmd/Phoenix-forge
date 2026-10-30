@@ -86,3 +86,39 @@ def test_universal_tab_exists_without_usb_probe(qt_app):
     widget.show_capabilities()
     assert "FAMILIAS Y ESTADO REAL" in widget.capabilities.toPlainText()
     panel.close()
+
+
+def test_shared_altera_id_is_not_a_unique_fpga_model():
+    # Real-world form from openFPGALoader: one JTAG ID, multiple possible parts.
+    raw = ("index 0:\n idcode 0x20f10dd\n manufacturer altera\n"
+           " family cyclone III/IV/10 LP\n"
+           " model EP3C5/EP3C10/EP4CE6/EP4CE10\n")
+    found = universal.infer_from_jtag(raw)
+    assert found["key"] == "cyclone_ambiguous"
+    assert found["detected_part"] == ""
+    assert found["idcodes"] == ["020F10DD"]
+    assert found["possible_parts"] == ["EP4CE10", "EP4CE6"]
+    assert found["integrated"] is False
+    assert "compartido" in found["confidence"]
+
+
+def test_unknown_jtag_id_is_visible_but_cannot_identify_board():
+    found = universal.infer_from_jtag("idcode 0x12345678 unknown device")
+    assert found["key"] == "unknown"
+    assert found["idcodes"] == ["12345678"]
+    assert found["detected_part"] == ""
+    assert found["integrated"] is False
+
+
+def test_bundled_loader_is_preferred_in_frozen_portable(tmp_path, monkeypatch):
+    from app.hardware import fpga
+    tool = tmp_path / "tools" / "openFPGALoader.exe"
+    tool.parent.mkdir()
+    tool.write_bytes(b"placeholder for an isolated path test")
+    monkeypatch.setattr(fpga.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(fpga.sys, "executable", str(tmp_path / "PhoenixForge.exe"))
+    monkeypatch.setattr(fpga.sys, "_MEIPASS", str(tmp_path), raising=False)
+    monkeypatch.setattr(fpga.shutil, "which", lambda name: None)
+    assert fpga.find_loader() == str(tool)
+    detected = universal.toolchain_inventory(which=lambda name: None)
+    assert detected["openFPGALoader"] == str(tool)
