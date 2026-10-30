@@ -78,5 +78,13 @@ def tool_environment(executable, base=None):
     env = dict(os.environ if base is None else base)
     bin_dir = Path(executable).resolve().parent
     if bin_dir.name.lower() == "bin" and bin_dir.parent.name == "oss-cad-suite":
-        env["PATH"] = str(bin_dir) + os.pathsep + env.get("PATH", "")
+        root = bin_dir.parent
+        # Mirror the relevant entries from upstream environment.bat,
+        # scoped only to our Yosys/JTAG child process (never global PATH).
+        env["PATH"] = os.pathsep.join(
+            (str(bin_dir), str(root / "lib"), env.get("PATH", "")))
+        env["YOSYSHQ_ROOT"] = str(root) + os.sep
+        env["PYTHON_EXECUTABLE"] = str(root / "lib" / "python3.exe")
+        env["SSL_CERT_FILE"] = str(root / "etc" / "cacert.pem")
+        env["OPENFPGALOADER_SOJ_DIR"] = str(root / "share" / "openFPGALoader")
     return env
