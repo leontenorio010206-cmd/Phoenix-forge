@@ -79,6 +79,7 @@ class OpenCyclonePanel(W.QWidget):
         form.addRow("Compilador", self.yosys)
         layout.addLayout(form)
         layout.addWidget(button("Elegir Yosys", self.choose))
+        layout.addWidget(button("Detectar herramientas Yosys instaladas", self.detect_yosys))
         self.start_button = button("Sintetizar con Yosys (sin Quartus)", self.start, True)
         layout.addWidget(self.start_button)
 
@@ -107,7 +108,7 @@ class OpenCyclonePanel(W.QWidget):
         layout.addWidget(label("Paso 3 · Cargar por JTAG a SRAM temporal", "Heading"))
         self.cable = W.QComboBox()
         self.cable.setEditable(True)
-        self.cable.addItems(["usb-blaster", "usb-blasterII", "ft2232"])
+        self.cable.addItems(["", "usb-blaster", "usb-blasterII", "ft2232"])
         layout.addWidget(self.cable)
         self.board_ok = W.QCheckBox(
             "Comprobé físicamente modelo, marcado y revisión de esta FPGA")
@@ -140,6 +141,23 @@ class OpenCyclonePanel(W.QWidget):
             for item in (self.pins_ok, self.voltage_ok,
                          self.board_ok, self.external_ok, self.sram_ok):
                 item.setChecked(False)
+
+    def detect_yosys(self):
+        try:
+            tool = open_cyclone.find_yosys()
+        except (OSError, ValueError) as exc:
+            self.yosys.clear()
+            self.status.setPlainText(
+                "Yosys no encontrado. Instala el componente OSS CAD Suite "
+                "desde el Setup de PhoenixForge y vuelve a comprobar.\n" + str(exc))
+            return
+        self.yosys.setText(tool)
+        self.status.setPlainText("Yosys encontrado: " + tool +
+                                 "\nLa compilación física Cyclone IV sigue pendiente.")
+
+    def clear_deploy_authorization(self):
+        for control in (self.board_ok, self.external_ok, self.sram_ok):
+            control.setChecked(False)
 
     def choose(self):
         path, _ = W.QFileDialog.getOpenFileName(
@@ -186,6 +204,9 @@ class OpenCyclonePanel(W.QWidget):
             self.rbf_path.setText(path)
             self.staged_folder = None
             self.deploy_button.setEnabled(False)
+            self.pins_ok.setChecked(False)
+            self.voltage_ok.setChecked(False)
+            self.clear_deploy_authorization()
 
     def stage(self):
         self.sync_project()
@@ -206,6 +227,7 @@ class OpenCyclonePanel(W.QWidget):
             self.status.setPlainText("Paquete NO preparado: " + str(exc))
             return
         self.staged_folder = result["folder"]
+        self.clear_deploy_authorization()
         self.deploy_button.setEnabled(True)
         self.status.setPlainText(
             "Bitstream EXTERNO importado sin certificar.\n"
@@ -220,11 +242,15 @@ class OpenCyclonePanel(W.QWidget):
             return
         try:
             record, binary = cyclone_deploy.inspect_staged(root)
+            current = self.project_provider()
+            if current is not None and current.project_id != record.get("project_id"):
+                raise ValueError("El paquete pertenece a otro proyecto; abre el proyecto correcto.")
         except (OSError, ValueError, KeyError) as exc:
             self.status.setPlainText("Paquete inválido: " + str(exc))
             self.deploy_button.setEnabled(False)
             return
         self.staged_folder = root
+        self.clear_deploy_authorization()
         self.part.setText(record["part"])
         self.board.setText(record["board"])
         self.deploy_button.setEnabled(True)
@@ -267,6 +293,7 @@ class OpenCyclonePanel(W.QWidget):
                 W.QMessageBox.No) != W.QMessageBox.Yes:
             return
         self.deploy_button.setEnabled(False)
+        self.clear_deploy_authorization()
         self.status.setPlainText("Volviendo a leer JTAG antes de cargar SRAM...")
         self.deploy_worker = DeploymentTask(
             self.staged_folder, cable, record["part"], self)
