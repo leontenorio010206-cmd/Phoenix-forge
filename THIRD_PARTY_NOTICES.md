@@ -29,3 +29,11 @@ Los PDFs originales del usuario no se redistribuyen. Los enlaces de fabricantes 
 ## Integración independiente con Digital
 
 Gracias a **Helmut Neemann** por crear el simulador libre [Digital](https://github.com/hneemann/Digital) bajo **GNU GPLv3**. PhœnixForge no integra ni relicencia sus fuentes: prepara un componente externo Verilog y ofrece descargar la distribución oficial de Digital en un paso opcional y verificado. Digital sigue siendo un producto separado; no se implica colaboración, aval ni patrocinio de su autor. Consulte [LEGAL.md](LEGAL.md) y [CREDITS.md](CREDITS.md).
+
+## OSS CAD Suite, descarga opcional del Setup 1.8.1 Preview
+
+Distribución de YosysHQ: https://github.com/YosysHQ/oss-cad-suite-build .
+PhœnixForge no copia las fuentes de terceros al núcleo MIT, sino que
+ofrece descarga verificable del paquete oficial durante la instalación.
+Cada componente conserva su propia licencia, avisos y derecho de autor.
+La investigación GPL Cyclone_CRAM_Mapper no se distribuye ni integra aún.

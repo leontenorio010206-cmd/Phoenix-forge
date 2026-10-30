@@ -139,3 +139,10 @@ Nuestro código original está bajo **MIT** ([LICENSE](LICENSE)); Digital, Icaru
 - Se incluyen diagnósticos y mediciones de tamaño para comparar versiones sin eliminar Icarus, Qt ni fuentes/licencias correspondientes.
 - Windows 7, Windows x86 de 32 bits y chips o cables FPGA no validados permanecen fuera de la compatibilidad garantizada.
 - Consulta [Estado de la versión 1.7](docs/STABILITY_170.md).
+
+## Preview 1.8.1: Setup libre de Cyclone IV (rama de desarrollo)
+
+Se añade un Setup que instala OSS CAD Suite con Yosys/openFPGALoader
+bajo demanda y checksum SHA256, sin Quartus instalado. No está publicado como
+release estable ni genera bitstreams Cyclone IV completos. Revisa
+[limitaciones del Setup](docs/SETUP_181_PREVIEW.md).
