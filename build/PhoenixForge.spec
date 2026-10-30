@@ -1,6 +1,9 @@
 # Windows x64, GUI, single file. Run only through tools/build_windows.py.
 from pathlib import Path
+import os
 root = Path(SPECPATH).resolve().parent
+version = os.environ.get('PF_BUILD_VERSION','1.7.0')
+if version not in ('1.7.0','1.8.1'): raise ValueError('Invalid build version')
 if not (root / 'vendor/icarus/manifest.json').is_file():
     raise RuntimeError('A verified Icarus runtime must be staged before packaging')
 datas = [(str(root / p), p) for p in ('app/assets', 'docs', 'examples', 'vendor/icarus',
@@ -35,8 +38,8 @@ for name, source, kind in a.binaries:
         raise RuntimeError('Qt module has no reviewed source in this build: ' + base)
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, a.binaries, a.datas, [],
-          name='PhoenixForge_v1.7.0_Portable', debug=False, bootloader_ignore_signals=False,
+          name='PhoenixForge_v%s_Portable' % version, debug=False, bootloader_ignore_signals=False,
           strip=False, upx=False, console=False, disable_windowed_traceback=False,
           icon=str(root / 'app/assets/PhoenixForge.ico'),
-          version=str(root / 'build/windows_version.txt'),
+          version=str(root / ('build/windows_version_181.txt' if version == '1.8.1' else 'build/windows_version.txt')),
           uac_admin=False, runtime_tmpdir=None)
