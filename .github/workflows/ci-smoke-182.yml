@@ -28,7 +28,7 @@ jobs:
           $tokens = $null
           $errors = $null
           [System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path installer/install_osscad_182.ps1).Path,
+            (Resolve-Path installer/install_osscad_181.ps1).Path,
             [ref]$tokens, [ref]$errors) | Out-Null
           if ($errors.Count -gt 0) { throw ($errors | Out-String) }
       - name: Instalar NSIS de prueba
