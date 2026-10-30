@@ -7,6 +7,7 @@ import re
 import shutil
 
 from app.hardware import fpga
+from app.integrations import oss_cad
 
 
 # This is a feature/capability matrix, NOT a promise that all backends are
@@ -152,6 +153,8 @@ def toolchain_inventory(which=shutil.which):
             candidate = which(name + ".exe")
         if not candidate and name == "openFPGALoader":
             candidate = fpga.bundled_loader()
+        if not candidate and name in ("yosys", "openFPGALoader", "nextpnr-generic"):
+            candidate = oss_cad.locate(name + ".exe")
         found[name] = str(candidate) if candidate else None
     return found
 

@@ -14,9 +14,10 @@ if str(ROOT) not in sys.path:
 from tools.verify_artifact import inspect_pe
 
 
-def verify_release(report_path, directory):
+def verify_release(report_path, directory, expected_version='1.7.0'):
+    if expected_version not in ('1.7.0','1.8.1'): raise ValueError('Unknown release version')
     data = json.loads(Path(report_path).read_text(encoding="utf-8"))
-    if data.get("version") != "1.7.0" or not data.get("success"):
+    if data.get("version") != expected_version or not data.get("success"):
         raise ValueError("Reporte de build ausente, fallido o de versión equivocada")
     if data.get("validation_status") != "ci_accepted_windows_server_2022":
         raise ValueError("El ejecutable no superó aceptación Windows nativa")
@@ -32,7 +33,7 @@ def verify_release(report_path, directory):
         raise ValueError("Número inesperado de artefactos Windows")
     folder = Path(directory)
     binaries = list(folder.glob("*.exe"))
-    expected = "PhoenixForge_v1.7.0_Portable.exe"
+    expected = "PhoenixForge_v%s_Portable.exe" % expected_version
     if [p.name for p in binaries] != [expected]:
         raise ValueError("Artefacto ausente o hay ejecutables no verificados en dist")
     actual = inspect_pe(folder / expected, minimum_size=20*1024*1024)
@@ -45,8 +46,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--directory", type=Path, required=True)
+    parser.add_argument("--version", default="1.7.0", choices=("1.7.0","1.8.1"))
     args = parser.parse_args()
-    verified = verify_release(args.report, args.directory)
+    verified = verify_release(args.report, args.directory, args.version)
     print("EXE ACEPTADO en runner Windows:", verified["name"], verified["bytes"], verified["sha256"])
 
 

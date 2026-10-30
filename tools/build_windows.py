@@ -12,6 +12,9 @@ import sys
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
+BUILD_VERSION = os.environ.get('PF_BUILD_VERSION', '1.7.0')
+if BUILD_VERSION not in ('1.7.0','1.8.1'):
+    raise ValueError('Invalid build version')
 sys.path.insert(0, str(ROOT))
 from tools.verify_artifact import inspect_pe, verify_vendor
 from tools.collect_licenses import collect
@@ -28,7 +31,7 @@ def main():
     parser.add_argument('--makensis', help='NSIS 3.11 makensis.exe path; auto-detected if omitted')
     parser.add_argument('--portable-only', action='store_true')
     args = parser.parse_args()
-    report = {'version': '1.7.0', 'utc': datetime.now(timezone.utc).isoformat(),
+    report = {'version': BUILD_VERSION, 'utc': datetime.now(timezone.utc).isoformat(),
               'host': platform.platform(), 'python': platform.python_version(),
               'success': False, 'artifacts': [], 'clean_vm_verified': False,
               'installer_installation_verified': False, 'release_acceptance_complete': False,
@@ -55,7 +58,7 @@ def main():
                            for k in ('tests', 'failures', 'errors', 'skipped')}
         if any(report['tests'][key] for key in ('failures', 'errors', 'skipped')):
             raise RuntimeError('CI Windows exige cero pruebas fallidas, erróneas u omitidas')
-        portable = ROOT / 'dist/PhoenixForge_v1.7.0_Portable.exe'
+        portable = ROOT / ('dist/PhoenixForge_v%s_Portable.exe' % BUILD_VERSION)
         invoke([sys.executable, '-m', 'PyInstaller', '--clean', '--noconfirm',
                 '--distpath', 'dist', '--workpath', 'build/work-modern',
                 'build/PhoenixForge.spec'], environment)
@@ -77,8 +80,8 @@ def main():
                 nsis = str(guess) if guess.is_file() else None
             if not nsis:
                 raise FileNotFoundError('Install NSIS 3.11 on the build machine, or specify --makensis')
-            invoke([nsis, '/INPUTCHARSET', 'UTF8', '/DPF_ROOT=' + str(ROOT), ROOT / 'installer/PhoenixForge.nsi'])
-            report['artifacts'].append(inspect_pe(ROOT / 'dist/PhoenixForge_v1.7.0_Setup.exe',
+            invoke([nsis, '/INPUTCHARSET', 'UTF8', '/DPF_ROOT=' + str(ROOT), ROOT / ('installer/PhoenixForge_181.nsi' if BUILD_VERSION == '1.8.1' else 'installer/PhoenixForge.nsi')])
+            report['artifacts'].append(inspect_pe(ROOT / ('dist/PhoenixForge_v%s_Setup.exe' % BUILD_VERSION),
                                                  minimum_size=20*1024*1024, machine=None))
         report['success'] = True
     except Exception as error:
