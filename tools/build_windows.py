@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD_VERSION = os.environ.get('PF_BUILD_VERSION', '1.7.0')
-if BUILD_VERSION not in ('1.7.0','1.8.1','1.8.2'):
+if BUILD_VERSION not in ('1.7.0','1.8.1','1.8.2','1.8.3'):
     raise ValueError('Invalid build version')
 sys.path.insert(0, str(ROOT))
 from tools.verify_artifact import inspect_pe, verify_vendor
@@ -80,7 +80,7 @@ def main():
                 nsis = str(guess) if guess.is_file() else None
             if not nsis:
                 raise FileNotFoundError('Install NSIS 3.11 on the build machine, or specify --makensis')
-            invoke([nsis, '/INPUTCHARSET', 'UTF8', '/DPF_ROOT=' + str(ROOT), ROOT / ('installer/PhoenixForge_182.nsi' if BUILD_VERSION == '1.8.2' else ('installer/PhoenixForge_181.nsi' if BUILD_VERSION == '1.8.1' else 'installer/PhoenixForge.nsi'))])
+            invoke([nsis, '/INPUTCHARSET', 'UTF8', '/DPF_ROOT=' + str(ROOT), ROOT / ('installer/PhoenixForge_183.nsi' if BUILD_VERSION == '1.8.3' else ('installer/PhoenixForge_182.nsi' if BUILD_VERSION == '1.8.2' else ('installer/PhoenixForge_181.nsi' if BUILD_VERSION == '1.8.1' else 'installer/PhoenixForge.nsi')))])
             report['artifacts'].append(inspect_pe(ROOT / ('dist/PhoenixForge_v%s_Setup.exe' % BUILD_VERSION),
                                                  minimum_size=20*1024*1024, machine=None))
         report['success'] = True
