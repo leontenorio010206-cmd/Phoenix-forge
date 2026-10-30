@@ -33,6 +33,12 @@ function Check-Installed($folder) {
       $data.file_sha256) { return $false }
   if ((Get-FileHash -LiteralPath $loader -Algorithm SHA256).Hash.ToLowerInvariant() -ne
       $data.loader_sha256) { return $false }
+  $next = Join-Path $folder 'runtime\oss-cad-suite\bin\nextpnr-generic.exe'
+  if (Test-Path -LiteralPath $next -PathType Leaf) {
+    if (-not $data.nextpnr_sha256 -or
+        (Get-FileHash -LiteralPath $next -Algorithm SHA256).Hash.ToLowerInvariant() -ne
+        $data.nextpnr_sha256) { return $false }
+  }
   return $true
 }
 if (Test-Path -LiteralPath $dest) {
@@ -101,6 +107,9 @@ try {
     relative_path = 'runtime/oss-cad-suite/bin/yosys.exe'
     file_sha256 = (Get-FileHash -LiteralPath $yosys -Algorithm SHA256).Hash.ToLowerInvariant()
     loader_sha256 = (Get-FileHash -LiteralPath $loader -Algorithm SHA256).Hash.ToLowerInvariant()
+    nextpnr_sha256 = $(if (Test-Path -LiteralPath (Join-Path $bin 'nextpnr-generic.exe') -PathType Leaf) {
+      (Get-FileHash -LiteralPath (Join-Path $bin 'nextpnr-generic.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+    } else { $null })
     installed_utc = [datetime]::UtcNow.ToString('o')
   }
   $receipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $stage $receiptName) -Encoding UTF8

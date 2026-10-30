@@ -56,12 +56,22 @@ def _installed(roots, name):
             elif name == "openFPGALoader.exe":
                 expected = info.get("loader_sha256")
             else:
-                expected = None
-            if name != "nextpnr-generic.exe" and (
-                    not isinstance(expected, str) or len(expected) != 64 or _digest(exe) != expected):
+                expected = info.get("nextpnr_sha256")
+            if (not isinstance(expected, str) or len(expected) != 64 or
+                    _digest(exe) != expected):
                 continue
-            if not (bin_dir / "yosys.exe").is_file() or not (bin_dir / "openFPGALoader.exe").is_file():
-                continue
+            # A compatible install must still have intact mandatory tools.
+            core = {"yosys.exe": info.get("file_sha256"),
+                    "openFPGALoader.exe": info.get("loader_sha256")}
+            for core_name, core_hash in core.items():
+                target = bin_dir / core_name
+                if (not target.is_file() or target.is_symlink() or
+                        not isinstance(core_hash, str) or len(core_hash) != 64 or
+                        _digest(target) != core_hash):
+                    break
+            else:
+                return exe
+            continue
             return exe
         except (OSError, ValueError, TypeError):
             continue
