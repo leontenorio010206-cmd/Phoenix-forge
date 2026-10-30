@@ -146,3 +146,7 @@ Se añade un Setup que instala OSS CAD Suite con Yosys/openFPGALoader
 bajo demanda y checksum SHA256, sin Quartus instalado. No está publicado como
 release estable ni genera bitstreams Cyclone IV completos. Revisa
 [limitaciones del Setup](docs/SETUP_181_PREVIEW.md).
+
+## Vista previa 1.8.3 — estabilidad FPGA
+
+Rama `feature/183-stability`: refuerza JTAG, checksum de bitstream, confirmaciones SRAM, detección de Yosys y Setup Windows. Sigue sin existir un compilador físico libre universal Cyclone IV. [Alcance y pruebas](docs/FPGA_183_STABILITY.md).

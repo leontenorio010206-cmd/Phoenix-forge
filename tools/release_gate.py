@@ -15,7 +15,7 @@ from tools.verify_artifact import inspect_pe
 
 
 def verify_release(report_path, directory, expected_version='1.7.0'):
-    if expected_version not in ('1.7.0','1.8.1','1.8.2'): raise ValueError('Unknown release version')
+    if expected_version not in ('1.7.0','1.8.1','1.8.2','1.8.3'): raise ValueError('Unknown release version')
     data = json.loads(Path(report_path).read_text(encoding="utf-8"))
     if data.get("version") != expected_version or not data.get("success"):
         raise ValueError("Reporte de build ausente, fallido o de versión equivocada")
@@ -46,7 +46,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--directory", type=Path, required=True)
-    parser.add_argument("--version", default="1.7.0", choices=("1.7.0","1.8.1","1.8.2"))
+    parser.add_argument("--version", default="1.7.0", choices=("1.7.0","1.8.1","1.8.2","1.8.3"))
     args = parser.parse_args()
     verified = verify_release(args.report, args.directory, args.version)
     print("EXE ACEPTADO en runner Windows:", verified["name"], verified["bytes"], verified["sha256"])
