@@ -123,6 +123,30 @@ def driver_report(identity, runner=subprocess.run):
     }
 
 
+def bundled_loader():
+    """Find a vendor-neutral JTAG tool already shipped with a portable build.
+
+    This never downloads binaries, scans untrusted working directories,
+    changes drivers or assumes that the distribution actually includes one.
+    """
+    if not getattr(sys, "frozen", False):
+        return None
+    roots = [Path(sys.executable).resolve().parent]
+    if getattr(sys, "_MEIPASS", None):
+        roots.append(Path(sys._MEIPASS).resolve())
+    locations = (
+        "tools/openFPGALoader.exe", "tools/openFPGALoader",
+        "bin/openFPGALoader.exe", "bin/openFPGALoader",
+        "openFPGALoader.exe", "openFPGALoader",
+    )
+    for root in roots:
+        for relative in locations:
+            path = root / relative
+            if path.is_file():
+                return str(path)
+    return None
+
+
 def find_loader(path=None):
     if path:
         candidate = Path(path).expanduser().resolve()
@@ -131,9 +155,14 @@ def find_loader(path=None):
         if not candidate.is_file():
             raise FileNotFoundError("No se encontró openFPGALoader")
         return str(candidate)
+    packaged = bundled_loader()
+    if packaged:
+        return packaged
     result = shutil.which("openFPGALoader") or shutil.which("openFPGALoader.exe")
     if not result:
-        raise FileNotFoundError("No se encontró openFPGALoader. Selecciónalo desde su instalación oficial.")
+        raise FileNotFoundError(
+            "No se encontró openFPGALoader. Esta distribución no incluye el "
+            "binario JTAG; selecciónalo desde su instalación oficial.")
     return result
 
 
@@ -157,8 +186,21 @@ def probe_target(target, via="board", executable=None, runner=subprocess.run):
     """JTAG ID scan: read only, but may briefly occupy the selected JTAG cable."""
     if via not in {"board", "cable"} or not VALID_TARGET.fullmatch(target or ""):
         raise ValueError("Selecciona una placa o cable JTAG de nombre válido")
-    return invoke(["--detect", "-b" if via == "board" else "-c", target],
-                  executable, runner=runner, timeout=45)
+    cmd = [find_loader(executable), "--detect",
+           "-b" if via == "board" else "-c", target]
+    response = runner(cmd, capture_output=True, text=True, timeout=45, check=False)
+    output = ((response.stdout or "") + "\n" + (response.stderr or "")).strip()
+    if response.returncode:
+        # An unrecognized JTAG device can still expose its IDCODE. Keep the
+        # read-only evidence visible, but never interpret it as program-ready.
+        unknown = re.search(r"\b(?:unknown|unrecognized)\s+(?:jtag\s+)?device\b", output, re.I)
+        code = re.search(r"\b(?:idcode|id\s+code)\s*[:=]?\s*(?:0x)?[0-9a-f]{7,8}\b", output, re.I)
+        if unknown and code:
+            return ("ADVERTENCIA: dispositivo JTAG desconocido; "
+                    "solo diagnóstico, programación bloqueada.\n" + output[-30000:])
+        raise RuntimeError("Lectura JTAG fallida (código %d):\n%s" %
+                           (response.returncode, output[-3500:]))
+    return output[-30000:]
 
 
 def program_target(target, firmware, via="board", flash=False, executable=None, runner=subprocess.run):
