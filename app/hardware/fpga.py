@@ -12,6 +12,7 @@ import subprocess
 import sys
 
 from app.hardware.discovery import VID_PID, _ps
+from app.integrations import oss_cad
 
 # Quickstart only. The installed tool provides the complete supported lists.
 # These are examples of manufacturer *families*; no country-of-origin guesses.
@@ -158,6 +159,9 @@ def find_loader(path=None):
     packaged = bundled_loader()
     if packaged:
         return packaged
+    packaged = oss_cad.locate("openFPGALoader.exe")
+    if packaged:
+        return packaged
     result = shutil.which("openFPGALoader") or shutil.which("openFPGALoader.exe")
     if not result:
         raise FileNotFoundError(
@@ -168,7 +172,8 @@ def find_loader(path=None):
 
 def invoke(args, executable=None, runner=subprocess.run, timeout=30):
     cmd = [find_loader(executable)] + list(args)
-    result = runner(cmd, capture_output=True, text=True, timeout=timeout, check=False)
+    result = runner(cmd, capture_output=True, text=True, timeout=timeout, check=False,
+                    env=oss_cad.tool_environment(cmd[0]))
     combined = ((result.stdout or "") + "\n" + (result.stderr or ""))[-30000:]
     if result.returncode:
         raise RuntimeError("openFPGALoader código %d:\n%s" % (result.returncode, combined[-3500:]))
@@ -188,7 +193,8 @@ def probe_target(target, via="board", executable=None, runner=subprocess.run):
         raise ValueError("Selecciona una placa o cable JTAG de nombre válido")
     cmd = [find_loader(executable), "--detect",
            "-b" if via == "board" else "-c", target]
-    response = runner(cmd, capture_output=True, text=True, timeout=45, check=False)
+    response = runner(cmd, capture_output=True, text=True, timeout=45, check=False,
+                      env=oss_cad.tool_environment(cmd[0]))
     output = ((response.stdout or "") + "\n" + (response.stderr or "")).strip()
     if response.returncode:
         # An unrecognized JTAG device can still expose its IDCODE. Keep the

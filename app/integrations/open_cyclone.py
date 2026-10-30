@@ -9,6 +9,7 @@ import tempfile
 
 from app.core.hdl import identifier, modules
 from app.integrations.quartus_bridge import validate_part
+from app.integrations import oss_cad
 from app.utils.paths import safe_relative
 
 SOURCE = re.compile(r"^[A-Za-z0-9_./ -]+$")
@@ -34,6 +35,9 @@ def find_yosys(executable=None, which=shutil.which):
                 candidate = root / rel
                 if candidate.is_file():
                     return str(candidate)
+    packaged = oss_cad.locate("yosys.exe")
+    if packaged:
+        return packaged
     result = which("yosys") or which("yosys.exe")
     if result:
         return str(result)
@@ -95,7 +99,8 @@ def synthesize(project, parent, top, part, executable=None,
         synthesis_script(top, sources), encoding="utf-8")
     try:
         proc = runner([tool, "-s", SCRIPT_NAME], cwd=str(folder),
-                      capture_output=True, text=True, timeout=timeout, check=False)
+                      capture_output=True, text=True, timeout=timeout, check=False,
+                      env=oss_cad.tool_environment(tool))
     except subprocess.TimeoutExpired as exc:
         raise RuntimeError("Yosys excedió el límite de tiempo.") from exc
     log = ((proc.stdout or "") + "\n" + (proc.stderr or ""))[-40000:]
