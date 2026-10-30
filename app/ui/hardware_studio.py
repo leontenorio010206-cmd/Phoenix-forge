@@ -10,6 +10,7 @@ from app.hardware.arduino_catalog import (model_shortcuts, merge_catalog,
     BASIC_PACK, CORE_HEADERS, EXAMPLES, DEFAULT_CORES)
 from app.devices.catalog import load_profiles
 from app.ui.quartus_panel import QuartusPanel
+from app.ui.open_cyclone_panel import OpenCyclonePanel
 from app.ui.universal_fpga_panel import UniversalPanel
 
 EXAMPLE = """// Ejemplo para Arduino Uno (LED integrado)
@@ -89,6 +90,7 @@ class HardwareStudio(W.QWidget):
             UniversalPanel(lambda: self.list.currentItem().data(Qt.UserRole)
                            if self.list.currentItem() else None),
             "FPGA universal")
+        self.tabs.addTab(OpenCyclonePanel(self.project_provider), "Cyclone IV / Libre")
         self.tabs.addTab(QuartusPanel(self.project_provider), "Cyclone IV / Quartus")
         self._make_arduino_catalog()
 

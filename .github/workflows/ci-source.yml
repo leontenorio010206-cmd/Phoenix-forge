@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, feature/cyclone-iv-open-toolchain]
   workflow_dispatch:
 permissions:
   contents: read

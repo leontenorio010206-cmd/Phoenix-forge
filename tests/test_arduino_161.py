@@ -93,9 +93,10 @@ def test_hardware_catalog_ui_and_examples(qt_app, monkeypatch):
     from app.ui.hardware_studio import HardwareStudio
     panel = HardwareStudio()
     panel.timer.stop()
-    assert panel.tabs.count() == 6
+    assert panel.tabs.count() == 7
     assert panel.tabs.tabText(3) == "FPGA universal"
-    assert panel.tabs.tabText(4) == "Cyclone IV / Quartus"
+    assert panel.tabs.tabText(4) == "Cyclone IV / Libre"
+    assert panel.tabs.tabText(5) == "Cyclone IV / Quartus"
     assert panel.models.topLevelItemCount() == len(model_shortcuts())
     panel.model_filter.setText("Uno R4")
     assert panel.models.topLevelItemCount() == 2
