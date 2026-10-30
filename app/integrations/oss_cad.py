@@ -72,7 +72,6 @@ def _installed(roots, name):
             else:
                 return exe
             continue
-            return exe
         except (OSError, ValueError, TypeError):
             continue
     return None

@@ -34,9 +34,11 @@ function Check-Installed($folder) {
   if ((Get-FileHash -LiteralPath $loader -Algorithm SHA256).Hash.ToLowerInvariant() -ne
       $data.loader_sha256) { return $false }
   $next = Join-Path $folder 'runtime\oss-cad-suite\bin\nextpnr-generic.exe'
-  if (Test-Path -LiteralPath $next -PathType Leaf) {
-    if (-not $data.nextpnr_sha256 -or
-        (Get-FileHash -LiteralPath $next -Algorithm SHA256).Hash.ToLowerInvariant() -ne
+  # Existing 1.8.1 installations had no nextpnr digest in the receipt.
+  # Keep their verified Yosys/JTAG tools functional after updating PhoenixForge.
+  # The Python application will decline nextpnr until a hash is recorded.
+  if ((Test-Path -LiteralPath $next -PathType Leaf) -and $data.nextpnr_sha256) {
+    if ((Get-FileHash -LiteralPath $next -Algorithm SHA256).Hash.ToLowerInvariant() -ne
         $data.nextpnr_sha256) { return $false }
   }
   return $true
