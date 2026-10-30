@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "component": "osscad",
+  "version": "2026-10-27",
+  "folder": "OSS-CAD-Suite-20261027",
+  "url": "https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-10-27/oss-cad-suite-windows-x64-20261027.tgz",
+  "sha256": "aadcf3ff1b7cc8720509fde6c57ca84249f3beb45ddd14fd492c608241a12bb8",
+  "bytes": 603362463,
+  "expected": "oss-cad-suite/bin/yosys.exe",
+  "recommended_tools": [
+    "yosys.exe",
+    "openFPGALoader.exe"
+  ],
+  "license": "See upstream component licenses",
+  "source": "https://github.com/YosysHQ/oss-cad-suite-build",
+  "max_entries": 200000
+}
