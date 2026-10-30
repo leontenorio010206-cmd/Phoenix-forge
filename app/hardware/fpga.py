@@ -186,8 +186,21 @@ def probe_target(target, via="board", executable=None, runner=subprocess.run):
     """JTAG ID scan: read only, but may briefly occupy the selected JTAG cable."""
     if via not in {"board", "cable"} or not VALID_TARGET.fullmatch(target or ""):
         raise ValueError("Selecciona una placa o cable JTAG de nombre válido")
-    return invoke(["--detect", "-b" if via == "board" else "-c", target],
-                  executable, runner=runner, timeout=45)
+    cmd = [find_loader(executable), "--detect",
+           "-b" if via == "board" else "-c", target]
+    response = runner(cmd, capture_output=True, text=True, timeout=45, check=False)
+    output = ((response.stdout or "") + "\n" + (response.stderr or "")).strip()
+    if response.returncode:
+        # An unrecognized JTAG device can still expose its IDCODE. Keep the
+        # read-only evidence visible, but never interpret it as program-ready.
+        unknown = re.search(r"\b(?:unknown|unrecognized)\s+(?:jtag\s+)?device\b", output, re.I)
+        code = re.search(r"\b(?:idcode|id\s+code)\s*[:=]?\s*(?:0x)?[0-9a-f]{7,8}\b", output, re.I)
+        if unknown and code:
+            return ("ADVERTENCIA: dispositivo JTAG desconocido; "
+                    "solo diagnóstico, programación bloqueada.\n" + output[-30000:])
+        raise RuntimeError("Lectura JTAG fallida (código %d):\n%s" %
+                           (response.returncode, output[-3500:]))
+    return output[-30000:]
 
 
 def program_target(target, firmware, via="board", flash=False, executable=None, runner=subprocess.run):

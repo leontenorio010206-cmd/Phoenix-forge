@@ -85,3 +85,8 @@ ya incluya ese binario**, Quartus o sus controladores. La generación de un
 `.sof` Cyclone IV todavía requiere Quartus compatible y un perfil de placa
 con part number y pines verificados. IDCODE desconocido o compartido nunca
 habilita una carga SRAM a ciegas.
+
+También se conserva la evidencia de `Unknown device with IDCODE` cuando
+openFPGALoader termina con error por un chip todavía no registrado en su
+catálogo. El resultado se muestra como **diagnóstico no reconocido** y nunca
+habilita la compilación, SRAM ni Flash para una placa sin perfil verificado.

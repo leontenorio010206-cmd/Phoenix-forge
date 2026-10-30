@@ -122,3 +122,36 @@ def test_bundled_loader_is_preferred_in_frozen_portable(tmp_path, monkeypatch):
     assert fpga.find_loader() == str(tool)
     detected = universal.toolchain_inventory(which=lambda name: None)
     assert detected["openFPGALoader"] == str(tool)
+
+
+def test_unknown_id_from_nonzero_probe_is_diagnostic_not_programmable(tmp_path):
+    from app.hardware import fpga
+    executable = tmp_path / "openFPGALoader.exe"
+    executable.touch()
+    calls = []
+
+    def unknown_device(cmd, **kwargs):
+        calls.append(cmd)
+        return subprocess.CompletedProcess(
+            cmd, 1, "", "Unknown device with IDCODE: 0x020830DD")
+
+    output = fpga.probe_target("usb-blaster", via="cable",
+                               executable=str(executable), runner=unknown_device)
+    assert "programación bloqueada" in output
+    match = universal.infer_from_jtag(output)
+    assert match["key"] == "unknown"
+    assert match["idcodes"] == ["020830DD"]
+    assert calls == [[str(executable), "--detect", "-c", "usb-blaster"]]
+
+
+def test_unrelated_jtag_failure_is_not_reported_as_unknown_chip(tmp_path):
+    from app.hardware import fpga
+    executable = tmp_path / "openFPGALoader.exe"
+    executable.touch()
+
+    def cable_missing(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 1, "", "Unable to open USB-Blaster")
+
+    with pytest.raises(RuntimeError, match="Lectura JTAG fallida"):
+        fpga.probe_target("usb-blaster", via="cable",
+                          executable=str(executable), runner=cable_missing)
